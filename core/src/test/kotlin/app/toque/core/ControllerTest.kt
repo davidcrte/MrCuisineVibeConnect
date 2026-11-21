@@ -369,6 +369,77 @@ class ControllerTest {
         assertEquals(0, b.snap.rpm)
     }
 
+    @Test fun adjustNeedsAFreshSample() {
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 60_000))
+        b.step(2_000)
+        b.board.silent = true
+        b.step(1_000)
+        val v = b.c.adjust(speed = 4)
+        assertFalse(v.ok)
+        assertTrue(v.violations.any { it.code == "stale" })
+        b.board.silent = false
+        b.step(500)
+        assertTrue(b.c.adjust(speed = 4).ok)
+    }
+
+    @Test fun overTemperatureFaultsOnlyWhileStillRising() {
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(2, 13, Direction.CLOCKWISE, 300_000))
+        b.step(2_000)
+        b.board.forcedTempC = 120
+        b.step(25_000)
+        assertEquals("", b.snap.faultCode)
+        b.board.forcedTempC = 124
+        b.step(11_000)
+        assertEquals(FaultCode.OVER_TEMPERATURE.name, b.snap.faultCode)
+        assertEquals(JobState.ABORTED.name, b.snap.jobState)
+        assertEquals(Operation.STOP.wire, b.lastOp())
+    }
+
+    @Test fun extremeTemperatureFaultsInAnyState() {
+        val b = Bench().ready()
+        b.board.forcedTempC = 155
+        b.step(1_500)
+        assertEquals("", b.snap.faultCode)
+        b.step(1_000)
+        assertEquals(FaultCode.OVER_TEMPERATURE.name, b.snap.faultCode)
+        assertFalse(b.c.acknowledgeFault().ok)
+        b.board.forcedTempC = 90
+        b.step(300)
+        assertTrue(b.c.acknowledgeFault().ok)
+    }
+
+    @Test fun heaterOnDuringUnheatedPhaseFaults() {
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 60_000))
+        b.step(2_000)
+        b.board.heaterStuck = true
+        b.step(5_000)
+        assertEquals("", b.snap.faultCode)
+        b.step(4_000)
+        assertEquals(FaultCode.UNEXPECTED_HEAT.name, b.snap.faultCode)
+        assertEquals(JobState.ABORTED.name, b.snap.jobState)
+        assertFalse(b.c.acknowledgeFault().ok)
+        b.board.heaterStuck = false
+        b.step(300)
+        assertTrue(b.c.acknowledgeFault().ok)
+    }
+
+    @Test fun coolingAfterHotStepDoesNotFault() {
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(2, 1, Direction.CLOCKWISE, 120_000))
+        b.step(1_000)
+        var t = 100
+        b.board.forcedTempC = t
+        repeat(60) {
+            b.step(1_000)
+            if (it % 5 == 0) b.board.forcedTempC = --t
+        }
+        assertEquals("", b.snap.faultCode)
+        assertEquals(JobState.RUNNING.name, b.snap.jobState)
+    }
+
     @Test fun tareIsAOneFramePulse() {
         val b = Bench().ready()
         b.board.contentWeightG = 600

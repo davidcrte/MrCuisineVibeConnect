@@ -71,6 +71,19 @@ object Limits {
     const val MAX_MS_TOAST = 840_000L
     const val MAX_MS_TURBO_PRESS = 3_000L
     const val MIN_MS = 1_000L
+
+    // Surchauffe. Seuils choisis sans mesure sur la vraie base : à confirmer en relevant la
+    // température d'un rissolage réel (130 °C).
+    /** Écart toléré au-dessus de la consigne envoyée, chauffe active. */
+    const val OVER_TEMP_MARGIN_C = 15
+    /** Fenêtre d'observation de l'écart : la température doit y monter d'au moins [OVER_TEMP_RISE_C]. */
+    const val OVER_TEMP_WINDOW_MS = 10_000L
+    const val OVER_TEMP_RISE_C = 2
+    /** Température absolue qui arrête tout, quel que soit l'état. */
+    const val MAX_TEMP_C = 150
+    const val MAX_TEMP_MS = 2_000L
+    /** Chauffe signalée active pendant une phase sans chauffe : alerte au-delà de ce délai. */
+    const val STRAY_HEAT_MS = 8_000L
 }
 
 /**

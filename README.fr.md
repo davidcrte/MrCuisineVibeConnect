@@ -113,12 +113,13 @@ sont corrigés :
 
 | Défaut de l'appli d'origine | Toque |
 |---|---|
-| Le démarrage était demandé avant de vérifier le couvercle | Couvercle, erreurs et fraîcheur des mesures sont vérifiés **avant** tout démarrage |
+| Le démarrage était demandé avant de vérifier le couvercle | Couvercle, erreurs et fraîcheur des mesures sont vérifiés **avant** tout démarrage, et avant tout nouveau réglage en marche |
 | Aucune détection d'une base moteur muette | Plus de réponse pendant 1,5 s : tout s'arrête et une alerte s'affiche |
 | Erreurs d'écriture série ignorées | Arrêt et alerte |
 | Un STOP suivi d'un START pouvait ne jamais émettre d'arrêt | Tout redémarrage ou changement de sens attend un échantillon confirmant **moteur arrêté** |
 | Lecture série sans resynchronisation | Trames fragmentées, collées ou corrompues gérées |
 | La lame tournait parfois en vapeur | Vapeur à vitesse 0 |
+| Température surveillée par la base seule | Tout s'arrête si le bol atteint 150 °C, continue de monter à 15 °C au-dessus de la consigne, ou chauffe pendant une étape sans chauffe (seuils pas encore mesurés sur une vraie base) |
 
 Autres ajouts : confirmation (et montée progressive) avant de mixer un contenu à 60 °C ou plus,
 limite de vitesse avec le fouet, alertes verrouillées jusqu'à acquittement, rien ne redémarre

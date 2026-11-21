@@ -86,6 +86,10 @@ class SimBoard(private val clock: Clock) {
     @Volatile var bowlPresent = true
     @Volatile var contentWeightG = 0
     @Volatile var silent = false
+    /** Bancs d'essai : température lue imposée (°C), à la place du modèle thermique. */
+    @Volatile var forcedTempC: Int? = null
+    /** Bancs d'essai : la base signale la chauffe active quelle que soit la consigne. */
+    @Volatile var heaterStuck = false
 
     private val rpmForLevel = intArrayOf(0, 300, 800, 1200, 2400, 4800, 7800, 10800, 13800, 16800, 19500)
 
@@ -131,7 +135,8 @@ class SimBoard(private val clock: Clock) {
     private fun response(): ByteArray {
         val r = ByteArray(Mcc.RX_SIZE)
         val motor = rpm > 0.5 || (op != Operation.STOP && speedLevel > 0 && !lidOpen && errorCode == 0)
-        val heat = heating()
+        val heat = heating() || heaterStuck
+        val temp = forcedTempC?.toDouble() ?: this.temp
         val mode = when {
             motor && heat -> 1
             heat -> 2

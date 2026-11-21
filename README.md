@@ -108,12 +108,13 @@ Turbo conditions…). Several flaws found while analysing the protocol are fixed
 
 | Stock app flaw | Toque |
 |---|---|
-| Start was requested before checking the lid | Lid, errors and data freshness are checked **before** any start |
+| Start was requested before checking the lid | Lid, errors and data freshness are checked **before** any start, and before any new setting while running |
 | No detection of a silent motor board | No reply for 1.5 s: everything stops and an alert is shown |
 | Serial write errors ignored | Stop and alert |
 | A STOP followed by a START could never send the stop | Any restart or direction change waits for a sample confirming **motor stopped** |
 | Serial reading without resynchronisation | Fragmented, merged or corrupted frames are handled |
 | The blade sometimes turned in steam mode | Steam at speed 0 |
+| Temperature only watched by the base | Everything stops if the bowl reaches 150 °C, keeps rising 15 °C above the setting, or heats during a step without heating (thresholds not yet measured on a real base) |
 
 Also added: confirmation (and a gradual ramp-up) before blending contents at 60 °C or more, a
 speed limit with the whisk, alerts that stay latched until acknowledged, nothing restarts on its
