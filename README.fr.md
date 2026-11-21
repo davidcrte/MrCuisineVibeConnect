@@ -122,6 +122,7 @@ sont corrigés :
 | Température surveillée par la base seule | Tout s'arrête si le bol atteint 150 °C, continue de monter à 15 °C au-dessus de la consigne, ou chauffe pendant une étape sans chauffe (seuils pas encore mesurés sur une vraie base) |
 
 Autres ajouts : confirmation (et montée progressive) avant de mixer un contenu à 60 °C ou plus,
+confirmation avant une vapeur si la balance indique moins de 300 g ou ne mesure rien,
 limite de vitesse avec le fouet, alertes verrouillées jusqu'à acquittement, rien ne redémarre
 tout seul après une pause ou une alerte. À froid, la lame va directement à la vitesse demandée. Le pilotage tourne dans **son propre processus** : un plantage de l'interface ne coupe
 pas une cuisson, qui se termine normalement.

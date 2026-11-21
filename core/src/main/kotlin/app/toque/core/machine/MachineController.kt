@@ -411,6 +411,8 @@ class MachineController(
         if (turboStartedAt != null) return Verdict.refuse("busy", tr("Turbo en cours"))
         val v = ArrayList(baseChecks(now))
         v += SafetyPolicy.checkJob(spec, actualTemp())
+        // Après baseChecks : une mesure présente est forcément fraîche ici.
+        if (v.isEmpty()) latest?.let { v += SafetyPolicy.checkWater(spec, it.weight, it.androidScaleState) }
         if (v.isNotEmpty()) return Verdict.refuse(v)
         job = ActiveJob(spec, now)
         return Verdict.OK

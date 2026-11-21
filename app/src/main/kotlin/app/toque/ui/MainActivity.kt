@@ -389,13 +389,15 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Démarre un programme ; si le contenu est chaud, demande d'abord la confirmation
-     * de mixage (comme l'appli d'origine, mais avant tout mouvement).
+     * Démarre un programme ; avant tout mouvement, demande les confirmations prévues par
+     * la machine : mixage d'un contenu chaud (comme l'appli d'origine), eau pour la vapeur.
+     * Chaque confirmation relance le démarrage, qui peut encore être refusé.
      */
     fun startJob(spec: JobSpec, onHotConfirmed: () -> Unit = {}, done: (Verdict) -> Unit = {}) {
         machine.start(spec) { v ->
-            if (!v.ok && v.has(SafetyPolicy.HOT_BLEND) && v.violations.size == 1) {
-                confirm(
+            val only = if (!v.ok) v.violations.singleOrNull() else null
+            when {
+                only?.code == SafetyPolicy.HOT_BLEND && !spec.hotBlendConfirmed -> confirm(
                     tr("Contenu chaud"),
                     tr("Le bol est à %d °C. Mixer chaud peut provoquer des projections.\n\n" +
                         "Vérifiez que le couvercle est verrouillé, que le gobelet est en place et que le bol n'est pas trop rempli.", snapshot.actualTempC) +
@@ -403,11 +405,18 @@ class MainActivity : Activity() {
                     tr("Mixer quand même"), icon = Icon.Kind.THERMO,
                 ) {
                     onHotConfirmed()
-                    machine.start(spec.copy(hotBlendConfirmed = true)) { v2 -> refusal(v2); done(v2) }
+                    startJob(spec.copy(hotBlendConfirmed = true), onHotConfirmed, done)
                 }
-            } else {
-                refusal(v)
-                done(v)
+                only?.code == SafetyPolicy.STEAM_WATER && !spec.waterConfirmed -> confirm(
+                    tr("Eau pour la vapeur"),
+                    only.message + ".\n\n" +
+                        tr("Sans eau, le bol chauffe à vide. Si la balance a été tarée après avoir versé l'eau, vous pouvez lancer la vapeur."),
+                    tr("Lancer la vapeur"), icon = Icon.Kind.STEAM,
+                ) { startJob(spec.copy(waterConfirmed = true), onHotConfirmed, done) }
+                else -> {
+                    refusal(v)
+                    done(v)
+                }
             }
         }
     }

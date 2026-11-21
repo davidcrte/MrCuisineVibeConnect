@@ -64,6 +64,7 @@ object Ipc {
         b.putBoolean("cyclic", j.cyclic)
         b.putString("accessory", j.accessory.name)
         b.putBoolean("hot", j.hotBlendConfirmed)
+        b.putBoolean("water", j.waterConfirmed)
         b.putIntArray("ops", j.phases.map { it.setting.operation.wire }.toIntArray())
         b.putIntArray("speeds", j.phases.map { it.setting.speed }.toIntArray())
         b.putIntArray("temps", j.phases.map { it.setting.temperatureLevel }.toIntArray())
@@ -93,6 +94,7 @@ object Ipc {
             cyclic = b.getBoolean("cyclic"),
             accessory = try { Accessory.valueOf(b.getString("accessory") ?: "") } catch (_: Exception) { Accessory.BLADE },
             hotBlendConfirmed = b.getBoolean("hot"),
+            waterConfirmed = b.getBoolean("water"),
         )
     }
 

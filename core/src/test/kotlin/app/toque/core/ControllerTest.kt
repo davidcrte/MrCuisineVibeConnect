@@ -360,13 +360,59 @@ class ControllerTest {
     }
 
     @Test fun steamDoesNotSpinTheBlade() {
-        val b = Bench().ready()
+        val b = Bench()
+        b.board.contentWeightG = 1000
+        b.ready()
         assertTrue(b.c.startJob(Programs.steam(60_000)).ok)
         b.step(10_000)
         val steam = b.tx.filter { it[1] == Operation.STEAM.wire }
         assertTrue(steam.isNotEmpty())
         assertTrue(steam.all { it[2] == 0 && it[3] == 17 })
         assertEquals(0, b.snap.rpm)
+    }
+
+    @Test fun steamAsksForWaterConfirmation() {
+        val b = Bench().ready()
+        b.board.contentWeightG = 120
+        b.step(2_000)
+        val v = b.c.startJob(Programs.steam(60_000))
+        assertFalse(v.ok)
+        assertEquals(listOf(SafetyPolicy.STEAM_WATER), v.violations.map { it.code })
+        assertTrue(b.snap.weightG in 110..120)
+        assertTrue(v.message, v.message.contains("${b.snap.weightG} g"))
+        b.step(1_000)
+        assertTrue(b.tx.none { it[1] == Operation.STEAM.wire })
+        assertTrue(b.c.startJob(Programs.steam(60_000).copy(waterConfirmed = true)).ok)
+        b.step(1_000)
+        assertEquals(Operation.STEAM.wire, b.lastOp())
+    }
+
+    @Test fun steamStartsWithWater() {
+        val b = Bench().ready()
+        b.board.contentWeightG = 600
+        b.step(2_000)
+        assertTrue(b.c.startJob(Programs.steam(60_000)).ok)
+    }
+
+    /** Balance en surcharge ou absente : le poids ne vaut rien, la confirmation est demandée. */
+    @Test fun steamAsksForWaterWhenScaleIsUnavailable() {
+        val b = Bench().ready()
+        b.board.contentWeightG = 1000
+        b.board.scaleFlags = 0x04
+        b.step(2_000)
+        assertTrue(b.c.startJob(Programs.steam(60_000)).has(SafetyPolicy.STEAM_WATER))
+        b.board.scaleFlags = 0x00
+        b.step(300)
+        assertTrue(b.c.startJob(Programs.steam(60_000)).has(SafetyPolicy.STEAM_WATER))
+        b.board.scaleFlags = 0x02
+        b.step(300)
+        assertTrue(b.c.startJob(Programs.steam(60_000)).ok)
+    }
+
+    /** La vérification de l'eau ne concerne que la vapeur : un bol vide se mixe normalement. */
+    @Test fun waterCheckIsForSteamOnly() {
+        val b = Bench().ready()
+        assertTrue(b.c.startJob(Programs.manual(1, 13, Direction.CLOCKWISE, 60_000)).ok)
     }
 
     @Test fun adjustNeedsAFreshSample() {
