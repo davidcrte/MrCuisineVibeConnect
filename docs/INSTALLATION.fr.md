@@ -268,7 +268,9 @@ C'est fini.
 
 1. Dans Toque : **Réglages › Machine › Machine réelle › Appliquer**. Toque coupe le service moteur
    de l'appli d'origine (réversible) et ouvre le port série.
-2. La pastille en haut à droite doit passer à **« Prête »**. Sinon : Réglages › Outils ›
+2. Réussite : la pastille en haut à droite doit afficher **« Prête »** **sans marqueur Démo ni Jumeau**
+   **et** le journal doit afficher la liaison réelle, par ex. `liaison ouverte : Base moteur (/dev/ttyMT…)` ;
+   `Démo (base simulée)` signifie que le mode n'a pas été appliqué. Sinon : Réglages › Outils ›
    Diagnostic (trames reçues ?) et Journal.
 3. Bol vide, couvercle fermé, **main près de l'interrupteur** :
    - Cuisson manuelle : 10 s, vitesse 2 → le moteur tourne puis s'arrête seul.

@@ -60,8 +60,11 @@ instead of the Mac sentence above.
   what it does in one sentence and wait for *yes*.
 - When a step prints `STOP:`, do not improvise a workaround on the robot: read the cause, fix it
   on the Mac side or ask the person, then run the step again.
-- If the robot is not an SKMC 1200 Monsieur Cuisine **Connect** (for example a Monsieur Cuisine
-  **Smart**, SKMS 1200), stop: this procedure does not apply.
+- Check the model on the label under the robot. **SKMC 1200**, revisions A1, B2 and C3, have been
+  installed with the Windows procedure (C3 also from a Mac). An **SKMC 1100 A1** runs Toque too,
+  but its owner needed a recovery adapted to its newer kernel (issue #10 of the original
+  repository): stop and say this guide does not cover it yet. A Monsieur Cuisine **Smart**
+  (SKMS 1200) is different hardware: stop.
 
 ## What the person needs
 
@@ -125,10 +128,12 @@ step, have the person switch it off. `ls /dev/cu.usbmodem*` lists nothing once i
 | 5 | `flash-root` | agent | Still in TWRP: writes TWRP into `recovery` and `boot-magisk.img` into `boot`. Checks first that both partitions hold what they should (else writes nothing), reads each one back. Power cycle as above → stock app. |
 | 6 | `android` | agent + person | Checks Magisk, installs its app; the person taps **Grant** on the robot once. Checks the boot partition. |
 | 7 | `install` | agent | Installs Toque, allows it in Magisk, starts it. |
-| 8 | first run | person | Empty bowl: Settings › Machine › Real machine › Apply, badge **Ready**, manual cooking 10 s speed 2. |
+| 8 | first run | person | Empty bowl: Settings › Machine › Real machine › Apply. Success: badge **not** in demo mode **and** journal line showing the real link, e.g. `liaison ouverte : Base moteur (/dev/ttyMT…)`; then manual cooking 10 s speed 2. |
 | 9 | `wifi` | agent | ADB over Wi-Fi (port 5555), so the cable can go and the cover go back on. |
 
-Then: Toque › Settings › Lidl recipes › **Sync** (about 15 minutes the first time).
+Then: Toque › Settings › Lidl recipes › **Sync** (about 15 minutes the first time). The recipe count
+stays at 0 and "never synced" stays shown until every recipe has been fetched: that is normal, do not
+restart the sync.
 
 ### Power-on rules (the source of most confusion)
 
@@ -226,6 +231,14 @@ and without macFUSE the FUSE package stops mtkclient from starting
 | Toque shows "Base absente" / no motor link | Magisk busybox missing | `install` again (it runs `tools/robot/setup-root.sh`) |
 | Stuck in the stock app (no Home/Back buttons on this robot) | Normal | Floating **Back to Toque** button, or `adb shell am start -n app.toque/.ui.MainActivity` |
 | `Toque s'est vu refuser les droits` toasts | Magisk policy | `install` again (it allows Toque in Magisk's database) |
+| `root`: `can't create /proc/self/fd/` and `Failed to patch` after `Loading dtbs` | Magisk's installer messages outside its UI; no fstab in the device tree on Android 6 | Harmless if the step ends with `== Done` |
+| `android`: `WARNING` that the boot partition could not be checked (older script) | The check used Magisk's busybox, which only exists after `install` | Harmless; the step now uses the busybox inside the Magisk app until `install` has run |
+| TWRP restarts by itself, the link drops and the robot stops on the battery screen | This TWRP restarts about 6 min 40 s after it started (watchdog) | Restart TWRP (off, unplug, on, plug in) and run `root` right away: it takes about 20 s |
+| `root` stops with "/system is read-only" | On some robots, *Keep Read Only* on TWRP's first screen leaves `/system` read-only (on the Mac and Linux runs, the script could remount it) | Restart TWRP, swipe **Allow Modifications** (or Mount › untick *Mount system partition read-only*), run `root` again |
+| Magisk app: *Requires additional setup*, then *reinstall Magisk… recovery mode cannot get device info* | Magisk app's own check, harmless here | Accept a reboot if offered; **never** use *Direct install* (it rewrites `boot`). Back out of the install screen |
+| Toque says "bowl not detected" with the bowl in place, and "detected" without it | The bowl sensor is reversed on many robots (B2, C3, SKMC 1100) | Settings › Safety › **Invert the bowl sensor**; check *Settings › Tools › Diagnostics*, then enable *Require bowl detection* |
+| The rotary knob does nothing | Knob keys not set up | Tap the *Rotary knob not set up* pill on Home and follow the 3 steps |
+| Scale shows "overload · 0 g" right after the install | The robot was resting on the cable or the open cover | Put the robot flat on its feet with nothing under it, screw the cover back, restart it |
 
 ## Undo
 

@@ -265,7 +265,9 @@ on**. Done.
 
 1. In Toque: **Settings › Machine › Real machine › Apply**. Toque turns off the stock app's motor
    service (reversible) and opens the serial port.
-2. The badge at the top right must turn to **"Ready"**. If not: Settings › Tools › Motor base
+2. Success: the badge at the top right must read **"Ready"** with **no Demo or Twin marker**
+   **and** the journal must show the real link, e.g. `liaison ouverte : Base moteur (/dev/ttyMT…)`;
+   `Démo (base simulée)` means the mode was not applied. If not: Settings › Tools › Motor base
    diagnostics (frames received?) and Log.
 3. Empty bowl, lid closed, **hand near the power switch**:
    - Manual cooking: 10 s, speed 2 → the motor turns, then stops by itself.
