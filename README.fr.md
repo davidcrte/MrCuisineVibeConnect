@@ -123,6 +123,8 @@ sont corrigés :
 
 Autres ajouts : confirmation (et montée progressive) avant de mixer un contenu à 60 °C ou plus,
 confirmation avant une vapeur si la balance indique moins de 300 g ou ne mesure rien,
+appui exigé avant une étape de recette enchaînée qui accélère au-delà de la vitesse 3, chauffe
+davantage ou n'a pas été vérifiée après import,
 limite de vitesse avec le fouet, alertes verrouillées jusqu'à acquittement, rien ne redémarre
 tout seul après une pause ou une alerte. À froid, la lame va directement à la vitesse demandée. Le pilotage tourne dans **son propre processus** : un plantage de l'interface ne coupe
 pas une cuisson, qui se termine normalement.
