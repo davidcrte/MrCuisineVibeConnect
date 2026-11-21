@@ -122,7 +122,8 @@ required before a chained recipe step that goes faster than speed 3, heats more 
 checked after import, a
 speed limit with the whisk, alerts that stay latched until acknowledged, nothing restarts on its
 own after a pause or an alert. When cold, the blade goes straight to the requested speed. Motor control runs in **its own process**: if the interface crashes, a cooking run is not
-cut off and finishes normally.
+cut off and finishes normally. If that process itself stops during a program, the interface
+shows "Cooking interrupted": the program does not resume on its own.
 
 ## Project layout
 

@@ -49,6 +49,7 @@ class MainActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private var unsubscribe: (() -> Unit)? = null
     private var unsubscribeEvents: (() -> Unit)? = null
+    private var unsubscribeInterrupted: (() -> Unit)? = null
     private var tone: ToneGenerator? = null
     private var toastView: TextView? = null
     private var lastKnobMs = 0L
@@ -125,6 +126,7 @@ class MainActivity : Activity() {
             standby.onSnapshot(s)
         }
         unsubscribeEvents = app.machine.onEvent { e -> onMachineEvent(e) }
+        unsubscribeInterrupted = app.machine.onInterrupted { label -> showInterrupted(label) }
         topBar.startClock()
         standby.start()
         updates.onStart()
@@ -141,6 +143,7 @@ class MainActivity : Activity() {
     override fun onStop() {
         unsubscribe?.invoke()
         unsubscribeEvents?.invoke()
+        unsubscribeInterrupted?.invoke()
         topBar.stopClock()
         standby.stop()
         updates.onStop()
@@ -367,9 +370,25 @@ class MainActivity : Activity() {
         overlay.removeAllViews()
     }
 
-    /** Dialogue de confirmation. */
-    fun confirm(title: String, message: String, yes: String, no: String = tr("Annuler"),
-                danger: Boolean = false, icon: Icon.Kind = Icon.Kind.WARNING, onYes: () -> Unit) {
+    /**
+     * Le processus machine s'est arrêté pendant un programme : il redémarre seul (START_STICKY),
+     * mais le programme est perdu. Alerte modale, à fermer explicitement.
+     */
+    private fun showInterrupted(label: String) {
+        standby.poke()
+        chime(3)
+        confirm(
+            tr("Cuisson interrompue"),
+            tr("Le service qui pilote la base s'est arrêté pendant « %s ». Il redémarre seul, mais le programme ne reprend pas.", label) +
+                "\n\n" + tr("Vérifiez le bol avant de relancer l'étape."),
+            tr("OK"), no = null, danger = true, dismissOnScrim = false,
+        ) {}
+    }
+
+    /** Dialogue de confirmation ; sans [no], simple alerte à un bouton. */
+    fun confirm(title: String, message: String, yes: String, no: String? = tr("Annuler"),
+                danger: Boolean = false, icon: Icon.Kind = Icon.Kind.WARNING, dismissOnScrim: Boolean = true,
+                onYes: () -> Unit) {
         val card = Ui.card(this, 28f, Ui.SURFACE2)
         card.setPadding(Ui.u(32), Ui.u(28), Ui.u(32), Ui.u(26))
         val head = Ui.horizontal(this)
@@ -378,14 +397,16 @@ class MainActivity : Activity() {
         card.addView(head)
         card.addView(Ui.text(this, message, 19f, Ui.TEXT2).apply { setLineSpacing(0f, 1.2f) }, Ui.lp(t = 16, b = 26))
         val row = Ui.horizontal(this, Gravity.END or Gravity.CENTER_VERTICAL)
-        row.addView(Ui.button(this, no, Ui.Style.GHOST, height = 60) { closeOverlay() })
-        row.addView(Ui.spacer(this, w = 14))
+        if (no != null) {
+            row.addView(Ui.button(this, no, Ui.Style.GHOST, height = 60) { closeOverlay() })
+            row.addView(Ui.spacer(this, w = 14))
+        }
         row.addView(Ui.button(this, yes, if (danger) Ui.Style.DANGER else Ui.Style.PRIMARY, height = 60) {
             closeOverlay()
             onYes()
         })
         card.addView(row)
-        showOverlay(card, 680)
+        showOverlay(card, 680, dismissOnScrim)
     }
 
     /**

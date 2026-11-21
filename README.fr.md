@@ -127,7 +127,8 @@ appui exigé avant une étape de recette enchaînée qui accélère au-delà de 
 davantage ou n'a pas été vérifiée après import,
 limite de vitesse avec le fouet, alertes verrouillées jusqu'à acquittement, rien ne redémarre
 tout seul après une pause ou une alerte. À froid, la lame va directement à la vitesse demandée. Le pilotage tourne dans **son propre processus** : un plantage de l'interface ne coupe
-pas une cuisson, qui se termine normalement.
+pas une cuisson, qui se termine normalement. Si c'est ce processus qui s'arrête pendant un
+programme, l'interface affiche « Cuisson interrompue » : le programme ne reprend pas tout seul.
 
 ## Structure
 
