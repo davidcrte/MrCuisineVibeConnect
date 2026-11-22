@@ -12,6 +12,7 @@ import app.toque.core.machine.JobKind
 import app.toque.core.machine.JobSpec
 import app.toque.core.machine.JobState
 import app.toque.core.machine.MachineEvent
+import app.toque.core.machine.Programs
 import app.toque.core.machine.SafetyPolicy
 import app.toque.core.machine.Snapshot
 import app.toque.core.protocol.Mcc
@@ -286,7 +287,8 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         val first = index
         val m = recipe.steps[first].machine ?: return
         val series = series(first)
-        val job = series ?: m.toJob(tr("Étape %d · %s", first + 1, recipe.title), hotBlendConfirmed = hotBlendOk) ?: return
+        val job = (series ?: m.toJob(tr("Étape %d · %s", first + 1, recipe.title), hotBlendConfirmed = hotBlendOk) ?: return)
+            .copy(countFromTemp = a.prefs.countFromTemp)
         val count = series?.phases?.size ?: 1
         a.prefs.guidedRecipe = recipe.id
         a.prefs.guidedStep = first
@@ -378,7 +380,9 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         if (mine && ps != null) {
             ps.setTextColor(Ui.TEXT2)
             ps.text = when (s.state) {
-                JobState.RUNNING, JobState.STARTING -> tr("En cours… reste %s", Ui.clock(s.remainingMs))
+                JobState.RUNNING, JobState.STARTING ->
+                    if (s.heatingUp) tr("Chauffe… %d °C sur %d °C", s.actualTempC, Mcc.celsiusForLevel(s.jobTempLevel))
+                    else tr("En cours… reste %s", Ui.clock(s.remainingMs))
                 JobState.STOPPING -> tr("Arrêt du moteur…")
                 JobState.PAUSED -> tr("En pause")
                 JobState.FINISHED -> tr("Terminé")
@@ -405,7 +409,10 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
     override fun ownsFinishSound(e: MachineEvent): Boolean = endsRecipe(e)
 
     override fun onEvent(e: MachineEvent) {
-        if (endsRecipe(e)) a.recipeDoneSound()
+        if (endsRecipe(e)) {
+            a.recipeDoneSound()
+            offerKeepWarm()
+        }
         if (e.type == EventType.JOB_FINISHED && launchedStep >= 0 && index >= launchedStep && index < launchedStep + launchedCount) {
             val finished = launchedStep + launchedCount - 1
             for (k in launchedStep..finished) done += k
@@ -427,6 +434,30 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         }
     }
 
+    /** Fin de recette : maintien au chaud proposé, jamais lancé sans appui (mêmes contrôles qu'un départ). */
+    private fun offerKeepWarm() {
+        a.confirm(
+            tr("Maintenir au chaud ?"),
+            tr("Le bol sera maintenu à %d °C, vitesse 1, pendant 30 minutes au plus.", Programs.KEEP_WARM_C),
+            tr("Maintenir au chaud"), tr("Non merci"), icon = Icon.Kind.THERMO,
+        ) { a.startJob(Programs.keepWarm()) }
+    }
+
+    /** Quitter (retour ou maison) pendant que ce programme tourne : confirmation, puis arrêt. */
+    override fun canLeave(proceed: () -> Unit): Boolean {
+        val s = a.snapshot
+        if (launchedStep < 0 || (s.state != JobState.RUNNING && s.state != JobState.PAUSED)) return true
+        a.confirm(
+            tr("Abandonner ?"), tr("Voulez-vous vraiment abandonner ? Le programme en cours sera arrêté."),
+            tr("Abandonner"), tr("Rester"), danger = true,
+        ) {
+            a.machine.stop()
+            launchedStep = -1
+            proceed()
+        }
+        return false
+    }
+
     override fun onKnob(delta: Int): Boolean {
         go(index + delta)
         return true
@@ -434,7 +465,24 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
 
     override fun onKnobPress(): Boolean {
         val m = recipe.steps.getOrNull(index)?.machine
-        if (m == null) next() else if (m.program != StepProgram.TURBO && startBtn.isEnabled && startBtn.visibility == View.VISIBLE) launch()
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (m == null) next()
+        else if (a.snapshot.state == JobState.RUNNING) {
+            // Pause directe, sans confirmation ; un second appui sous 3 s est nécessaire pour relancer.
+            a.machine.pause { a.refusal(it) }
+            knobArmedUntil = now + KNOB_WINDOW_MS
+        } else if (m.program != StepProgram.TURBO && startBtn.isEnabled && startBtn.visibility == View.VISIBLE) {
+            if (now > knobArmedUntil) {
+                knobArmedUntil = now + KNOB_WINDOW_MS
+                a.toast(tr("Appuyez de nouveau sur le bouton pour lancer"))
+            } else {
+                knobArmedUntil = 0L
+                launch()
+            }
+        }
         return true
     }
+
+    private var knobArmedUntil = 0L
+    private companion object { const val KNOB_WINDOW_MS = 3000L }
 }

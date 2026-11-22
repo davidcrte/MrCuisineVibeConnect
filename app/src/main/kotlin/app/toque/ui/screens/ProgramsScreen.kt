@@ -8,6 +8,7 @@ import android.widget.TextView
 import app.toque.core.i18n.tr
 import app.toque.core.machine.JobKind
 import app.toque.core.machine.JobSpec
+import app.toque.core.machine.JobState
 import app.toque.core.machine.Programs
 import app.toque.core.machine.Snapshot
 import app.toque.ui.HoldButton
@@ -133,7 +134,26 @@ class ProgramsScreen(a: MainActivity) : Screen(a) {
     }
 
     override fun onKnobPress(): Boolean {
-        if (!a.snapshot.busy) a.startJob(progs[selected].make(progs[selected].seconds * 1000L))
+        val s = a.snapshot
+        val now = android.os.SystemClock.elapsedRealtime()
+        when {
+            s.state == JobState.RUNNING -> {
+                a.machine.pause { a.refusal(it) }
+                knobArmedUntil = now + KNOB_RESUME_WINDOW_MS
+            }
+            s.busy -> {}
+            now > knobArmedUntil -> {
+                knobArmedUntil = now + KNOB_RESUME_WINDOW_MS
+                a.toast(tr("Appuyez de nouveau sur le bouton pour lancer"))
+            }
+            else -> {
+                knobArmedUntil = 0L
+                a.startJob(progs[selected].make(progs[selected].seconds * 1000L))
+            }
+        }
         return true
     }
+
+    private var knobArmedUntil = 0L
+    private companion object { const val KNOB_RESUME_WINDOW_MS = 3000L }
 }

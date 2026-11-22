@@ -32,6 +32,16 @@ class Prefs(context: Context) {
             p.edit().putString("mode", v.key).commit()
         }
 
+    /**
+     * Le choix Démo / Machine réelle a été fait (accueil du premier lancement ou Réglages).
+     * Une installation qui a déjà enregistré un mode est considérée comme ayant choisi.
+     */
+    var modeChosen: Boolean
+        get() = p.getBoolean("modeChosen", false) || p.contains("mode")
+        set(v) {
+            p.edit().putBoolean("modeChosen", v).commit()
+        }
+
     /** Langue de l'interface : « auto » (celle du système), « fr » ou « en ». */
     var language: String
         get() = p.getString("language", I18n.AUTO) ?: I18n.AUTO
@@ -88,6 +98,13 @@ class Prefs(context: Context) {
         get() = p.getBoolean("chainSteps", true)
         set(v) {
             p.edit().putBoolean("chainSteps", v).commit()
+        }
+
+    /** Cuisine guidée : le décompte des étapes chauffées part de la température atteinte. */
+    var countFromTemp: Boolean
+        get() = p.getBoolean("countFromTemp", true)
+        set(v) {
+            p.edit().putBoolean("countFromTemp", v).commit()
         }
 
     var sound: Boolean
@@ -244,6 +261,12 @@ class Prefs(context: Context) {
         get() = p.getString("weighSound", "ding") ?: "ding"
         set(v) {
             p.edit().putString("weighSound", v).commit()
+        }
+    /** Répéter le son de fin de programme toutes les 30 s (10 min au plus) tant qu'on n'a pas touché l'écran. */
+    var repeatEndAlarm: Boolean
+        get() = p.getBoolean("repeatEndAlarm", true)
+        set(v) {
+            p.edit().putBoolean("repeatEndAlarm", v).commit()
         }
     /** Prévenir quand une nouvelle version de Toque est publiée (au démarrage et au réveil). */
     var updateAlerts: Boolean

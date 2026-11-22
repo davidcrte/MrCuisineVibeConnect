@@ -81,6 +81,8 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
 
         // ---- Sécurité
         val safety = section(left, tr("Sécurité"), Icon.Kind.WARNING)
+        safety.addView(Ui.text(c, tr("Ces réglages protègent la personne qui cuisine. Ne les relâchez que si vous savez ce que vous faites : lame en rotation, contenu chaud."),
+            15f, Ui.WARN).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(b = 10))
         safety.addView(toggle(tr("Exiger la détection du bol"), a.prefs.requireBowl) { on ->
             a.prefs.requireBowl = on
             a.machine.reconfigure { a.refusal(it) }
@@ -102,9 +104,18 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         safety.addView(toggle(tr("Enchaîner les étapes machine des recettes"), a.prefs.chainSteps) { a.prefs.chainSteps = it }, Ui.lp(t = 10))
         safety.addView(Ui.text(c, tr("Les réglages qui se suivent sans geste à faire entre eux partent ensemble d'un seul appui sur Lancer : la lame passe directement à la vitesse et à la température suivantes."),
             15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
-        safety.addView(toggle(tr("Sons"), a.prefs.sound) { a.prefs.sound = it }, Ui.lp(t = 10))
-        safety.addView(Ui.text(c, tr("Son quand la quantité à peser est atteinte"), 18f, Ui.TEXT), Ui.lp(t = 10))
-        safety.addView(dropdown(Sounds.WEIGH_SOUNDS.map { it.first to tr(it.second) }, a.prefs.weighSound) { k ->
+        safety.addView(toggle(tr("Décompte à partir de la température atteinte"), a.prefs.countFromTemp) { a.prefs.countFromTemp = it }, Ui.lp(t = 10))
+        safety.addView(Ui.text(c, tr("En cuisine guidée, le temps d'une étape chauffée ne se décompte qu'une fois la température demandée atteinte (20 minutes d'attente au plus)."),
+            15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+
+        // ---- Sons
+        val sounds = section(left, tr("Sons"), Icon.Kind.BELL)
+        sounds.addView(toggle(tr("Sons"), a.prefs.sound) { a.prefs.sound = it })
+        sounds.addView(toggle(tr("Répéter l'alarme de fin"), a.prefs.repeatEndAlarm) { a.prefs.repeatEndAlarm = it }, Ui.lp(t = 10))
+        sounds.addView(Ui.text(c, tr("Le son de fin de programme est rejoué toutes les 30 secondes, pendant 10 minutes au plus, jusqu'à ce que vous touchiez l'écran ou le bouton rotatif."),
+            15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        sounds.addView(Ui.text(c, tr("Son quand la quantité à peser est atteinte"), 18f, Ui.TEXT), Ui.lp(t = 10))
+        sounds.addView(dropdown(Sounds.WEIGH_SOUNDS.map { it.first to tr(it.second) }, a.prefs.weighSound) { k ->
             a.prefs.weighSound = k
             Sounds.weighReached(k)
         }, Ui.lp(Ui.MATCH, Ui.u(58), t = 8))

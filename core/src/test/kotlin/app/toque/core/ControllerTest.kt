@@ -2,6 +2,7 @@ package app.toque.core
 
 import app.toque.core.machine.Accessory
 import app.toque.core.machine.Clock
+import app.toque.core.machine.Limits
 import app.toque.core.machine.ControllerConfig
 import app.toque.core.machine.EventType
 import app.toque.core.machine.FaultCode
@@ -107,6 +108,31 @@ class ControllerTest {
         val v = b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 5_000))
         assertFalse(v.ok)
         assertTrue(v.has("lid"))
+    }
+
+    @Test fun keepWarmIsAHeatedSlowManualProgramWithinLimits() {
+        val k = Programs.keepWarm()
+        assertEquals(65, k.phases.single().setting.temperatureC)
+        assertEquals(1, k.phases.single().setting.speed)
+        assertEquals(30 * 60_000L, k.totalMs)
+        assertTrue(SafetyPolicy.checkJob(k, null).isEmpty())
+        assertEquals("jamais au-delà de 30 min", 30 * 60_000L, Programs.keepWarm(2 * 3_600_000L).totalMs)
+        val b = Bench().ready()
+        assertTrue(b.c.startJob(k).ok)
+    }
+
+    @Test fun keepWarmGoesThroughTheSameStartChecks() {
+        val b = Bench().ready()
+        b.board.lidOpen = true
+        b.step(200)
+        val v = b.c.startJob(Programs.keepWarm())
+        assertFalse(v.ok)
+        assertTrue(v.has("lid"))
+    }
+
+    @Test fun waterErrorHasADedicatedMessage() {
+        assertEquals(Mcc.boardErrorMessage(6), "Pas d'eau (vapeur)")
+        assertTrue(Mcc.boardErrorMessage(5) != Mcc.boardErrorMessage(6))
     }
 
     @Test fun requiredBowlRefusesToStartWithoutIt() {
@@ -271,6 +297,45 @@ class ControllerTest {
         val speeds = b.tx.subList(first, last + 1).map { it[2] }
         assertEquals(listOf(5, 8, 2), speeds.distinct())
         assertEquals(JobState.FINISHED.name, b.snap.jobState)
+    }
+
+    @Test fun countdownWaitsForTemperatureWhenAsked() {
+        val b = Bench().ready()
+        val spec = Programs.manual(1, 13, Direction.CLOCKWISE, 30_000).copy(countFromTemp = true)
+        assertTrue(b.c.startJob(spec).ok)
+        b.step(5_000)
+        assertTrue(b.snap.heatingUp)
+        assertTrue(b.snap.actualTempC < Mcc.celsiusForLevel(13) - Limits.HEAT_REACHED_MARGIN_C)
+        assertEquals(0L, b.snap.elapsedMs)
+        assertEquals(30_000L, b.snap.remainingMs)
+        b.step(300_000)
+        assertFalse(b.snap.heatingUp)
+        assertTrue(b.snap.elapsedMs > 0 || b.snap.jobState == JobState.FINISHED.name)
+    }
+
+    @Test fun countdownStartsAtOnceWithoutTheOptionOrWithoutHeat() {
+        val b = Bench().ready()
+        assertTrue(b.c.startJob(Programs.manual(1, 13, Direction.CLOCKWISE, 30_000)).ok)
+        b.step(5_000)
+        assertFalse(b.snap.heatingUp)
+        assertTrue(b.snap.elapsedMs >= 4_000)
+        b.c.stop()
+        b.step(3_000)
+        b.c.clearFinished()
+        assertTrue(b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 30_000).copy(countFromTemp = true)).ok)
+        b.step(5_000)
+        assertFalse(b.snap.heatingUp)
+        assertTrue(b.snap.elapsedMs >= 4_000)
+    }
+
+    @Test fun waitingForTemperatureHasALimit() {
+        val b = Bench().ready()
+        // Consigne inatteignable pour la base simulée : on laisse l'attente maximale s'écouler.
+        val spec = Programs.manual(1, 19, Direction.CLOCKWISE, 10_000).copy(countFromTemp = true)
+        assertTrue(b.c.startJob(spec).ok)
+        b.step(Limits.MAX_MS_HEATUP + 5_000)
+        assertFalse(b.snap.heatingUp)
+        assertTrue(b.snap.elapsedMs > 0 || b.snap.jobState != JobState.RUNNING.name)
     }
 
     /** Un réglage rapide qui suit une chauffe dans la même série redemande la confirmation « contenu chaud ». */
