@@ -38,6 +38,7 @@ enum class PauseReason(private val fr: String) {
 
 enum class FaultCode {
     COMM_LOST, WRITE_FAILED, TRANSPORT_FAILED, BOARD_ERROR, STOP_TIMEOUT, UNEXPECTED_MOTION, UNEXPECTED_HEAT,
+    OVER_TEMPERATURE,
 }
 
 data class Fault(val code: FaultCode, val message: String, val boardCode: Int = 0)
@@ -130,6 +131,12 @@ class MachineController(
     private var rampAtMs = 0L
     private var lastLidOpen = false
 
+    /** Début et température de départ de la fenêtre de surchauffe en cours. */
+    private var overSinceMs: Long? = null
+    private var overStartC = 0
+    private var extremeSinceMs: Long? = null
+    private var straySinceMs: Long? = null
+
     var txFrames = 0L
         private set
     var rxFrames = 0L
@@ -213,6 +220,8 @@ class MachineController(
             raiseFault(FaultCode.BOARD_ERROR, Mcc.boardErrorMessage(t.errorCode), t.errorCode)
         }
 
+        checkTemperature(t, now)
+
         val since = stopSinceMs
         if (since != null && now - since > config.unexpectedGraceMs) {
             if (t.motorOn || t.actualRpm > 0) {
@@ -229,6 +238,53 @@ class MachineController(
         turboStartedAt = null
         val j = job ?: return
         if (j.state == JobState.RUNNING || j.state == JobState.STARTING) pauseJob(j, PauseReason.LID, now)
+    }
+
+    /**
+     * Surchauffe, en plus des protections de la base :
+     *  - au-delà de [Limits.MAX_TEMP_C] pendant [Limits.MAX_TEMP_MS], quel que soit l'état ;
+     *  - chauffe active, plus de [Limits.OVER_TEMP_MARGIN_C] au-dessus de la consigne envoyée ET
+     *    une température qui monte encore ([Limits.OVER_TEMP_RISE_C] sur [Limits.OVER_TEMP_WINDOW_MS]).
+     *    La hausse est exigée parce qu'on ignore si le bit de chauffe signifie « résistance
+     *    alimentée » ou seulement « mode chauffe » : un bol qui refroidit après une étape plus
+     *    chaude ne doit pas déclencher d'alerte ;
+     *  - chauffe active pendant une phase sans chauffe (l'arrêt est couvert par [stopSinceMs]).
+     */
+    private fun checkTemperature(t: Telemetry, now: Long) {
+        val actual = t.actualTemperature
+        val commanded = lastWire.temperatureLevel
+
+        extremeSinceMs = if (actual >= Limits.MAX_TEMP_C) extremeSinceMs ?: now else null
+
+        val over = t.heaterOn && commanded > 0 && actual > Mcc.celsiusForLevel(commanded) + Limits.OVER_TEMP_MARGIN_C
+        var rising = false
+        if (!over) {
+            overSinceMs = null
+        } else {
+            val since = overSinceMs
+            if (since == null) {
+                overSinceMs = now
+                overStartC = actual
+            } else if (now - since >= Limits.OVER_TEMP_WINDOW_MS) {
+                rising = actual >= overStartC + Limits.OVER_TEMP_RISE_C
+                overSinceMs = now
+                overStartC = actual
+            }
+        }
+
+        val stray = t.heaterOn && commanded == 0 && !lastWire.isRest
+        straySinceMs = if (stray) straySinceMs ?: now else null
+
+        val ext = extremeSinceMs
+        val str = straySinceMs
+        when {
+            ext != null && now - ext >= Limits.MAX_TEMP_MS -> if (fault?.code != FaultCode.OVER_TEMPERATURE)
+                raiseFault(FaultCode.OVER_TEMPERATURE, tr("Bol à %d °C (limite %d °C) : tout est arrêté. Laissez refroidir avant d'acquitter.", actual, Limits.MAX_TEMP_C))
+            rising -> if (fault?.code != FaultCode.OVER_TEMPERATURE)
+                raiseFault(FaultCode.OVER_TEMPERATURE, tr("Le bol chauffe trop : %d °C pour une consigne de %d °C. Tout est arrêté.", actual, Mcc.celsiusForLevel(commanded)))
+            str != null && now - str >= Limits.STRAY_HEAT_MS -> if (fault?.code != FaultCode.UNEXPECTED_HEAT && fault?.code != FaultCode.OVER_TEMPERATURE)
+                raiseFault(FaultCode.UNEXPECTED_HEAT, tr("La chauffe reste active alors qu'elle devrait être coupée. Coupez l'interrupteur principal."))
+        }
     }
 
     // ------------------------------------------------------------------ transport
@@ -355,6 +411,8 @@ class MachineController(
         if (turboStartedAt != null) return Verdict.refuse("busy", tr("Turbo en cours"))
         val v = ArrayList(baseChecks(now))
         v += SafetyPolicy.checkJob(spec, actualTemp())
+        // Après baseChecks : une mesure présente est forcément fraîche ici.
+        if (v.isEmpty()) latest?.let { v += SafetyPolicy.checkWater(spec, it.weight, it.androidScaleState) }
         if (v.isNotEmpty()) return Verdict.refuse(v)
         job = ActiveJob(spec, now)
         return Verdict.OK
@@ -426,7 +484,10 @@ class MachineController(
             totalMs = newTotal,
             hotBlendConfirmed = j.spec.hotBlendConfirmed || hotBlendConfirmed,
         )
-        val v = ArrayList(SafetyPolicy.checkJob(spec, actualTemp()))
+        // En marche, un nouveau réglage part tout de suite : mêmes préconditions qu'un démarrage.
+        // En pause, la reprise les revérifie.
+        val v = if (j.state == JobState.RUNNING || j.state == JobState.STARTING) ArrayList(baseChecks(now)) else ArrayList()
+        for (x in SafetyPolicy.checkJob(spec, actualTemp())) if (v.none { it.code == x.code }) v += x
         if (newTotal < j.totalElapsed + 1_000) v += Violation("past", tr("Durée déjà écoulée"))
         if (v.isNotEmpty()) return Verdict.refuse(v)
         j.spec = spec
@@ -464,6 +525,7 @@ class MachineController(
             FaultCode.COMM_LOST, FaultCode.TRANSPORT_FAILED, FaultCode.WRITE_FAILED -> link == LinkState.READY && transportUp
             FaultCode.UNEXPECTED_MOTION, FaultCode.STOP_TIMEOUT -> t != null && fresh(now) && t.motorStopped
             FaultCode.UNEXPECTED_HEAT -> t != null && fresh(now) && !t.heaterOn
+            FaultCode.OVER_TEMPERATURE -> t != null && fresh(now) && !t.heaterOn && t.actualTemperature < Limits.MAX_TEMP_C
         }
         if (!ok) return Verdict.refuse("fault_active", tr("La cause est toujours présente : %s", f.message))
         fault = null

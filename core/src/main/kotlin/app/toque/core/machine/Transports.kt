@@ -86,6 +86,12 @@ class SimBoard(private val clock: Clock) {
     @Volatile var bowlPresent = true
     @Volatile var contentWeightG = 0
     @Volatile var silent = false
+    /** Bancs d'essai : température lue imposée (°C), à la place du modèle thermique. */
+    @Volatile var forcedTempC: Int? = null
+    /** Bancs d'essai : la base signale la chauffe active quelle que soit la consigne. */
+    @Volatile var heaterStuck = false
+    /** Bancs d'essai : drapeaux de balance de l'octet 22 (2 normal, 4 surcharge, 1 calibration, 0 absente). */
+    @Volatile var scaleFlags = 0x02
 
     private val rpmForLevel = intArrayOf(0, 300, 800, 1200, 2400, 4800, 7800, 10800, 13800, 16800, 19500)
 
@@ -131,7 +137,8 @@ class SimBoard(private val clock: Clock) {
     private fun response(): ByteArray {
         val r = ByteArray(Mcc.RX_SIZE)
         val motor = rpm > 0.5 || (op != Operation.STOP && speedLevel > 0 && !lidOpen && errorCode == 0)
-        val heat = heating()
+        val heat = heating() || heaterStuck
+        val temp = forcedTempC?.toDouble() ?: this.temp
         val mode = when {
             motor && heat -> 1
             heat -> 2
@@ -153,7 +160,7 @@ class SimBoard(private val clock: Clock) {
         r[11] = tempLevel.toByte(); putWord(r, 12, Mcc.celsiusForLevel(tempLevel)); putWord(r, 14, temp.toInt())
         r[16] = (weight shr 24).toByte(); r[17] = (weight shr 16).toByte(); r[18] = (weight shr 8).toByte(); r[19] = weight.toByte()
         putWord(r, 20, 5016)
-        r[22] = 0x02; r[23] = 0; r[24] = 0
+        r[22] = scaleFlags.toByte(); r[23] = 0; r[24] = 0
         r[25] = Mcc.checksum(r, 25).toByte(); r[26] = 0xAA.toByte()
         return r
     }

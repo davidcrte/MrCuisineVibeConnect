@@ -55,6 +55,8 @@ data class JobSpec(
     val cyclic: Boolean,
     val accessory: Accessory = Accessory.BLADE,
     val hotBlendConfirmed: Boolean = false,
+    /** Vapeur : l'utilisateur a confirmé qu'il y a de l'eau malgré la balance. */
+    val waterConfirmed: Boolean = false,
 )
 
 /** Raison précise d'un refus, affichable telle quelle. */
@@ -71,6 +73,25 @@ object Limits {
     const val MAX_MS_TOAST = 840_000L
     const val MAX_MS_TURBO_PRESS = 3_000L
     const val MIN_MS = 1_000L
+
+    // Surchauffe. Seuils choisis sans mesure sur la vraie base : à confirmer en relevant la
+    // température d'un rissolage réel (130 °C).
+    /** Écart toléré au-dessus de la consigne envoyée, chauffe active. */
+    const val OVER_TEMP_MARGIN_C = 15
+    /** Fenêtre d'observation de l'écart : la température doit y monter d'au moins [OVER_TEMP_RISE_C]. */
+    const val OVER_TEMP_WINDOW_MS = 10_000L
+    const val OVER_TEMP_RISE_C = 2
+    /** Température absolue qui arrête tout, quel que soit l'état. */
+    const val MAX_TEMP_C = 150
+    const val MAX_TEMP_MS = 2_000L
+    /** Chauffe signalée active pendant une phase sans chauffe : alerte au-delà de ce délai. */
+    const val STRAY_HEAT_MS = 8_000L
+
+    /**
+     * Vapeur : poids net sous lequel la machine demande de confirmer l'eau. L'écran des
+     * programmes conseille 500 g ; la marge couvre une balance tarée avec un peu d'eau.
+     */
+    const val MIN_STEAM_WATER_G = 300
 }
 
 /**
@@ -166,7 +187,25 @@ object SafetyPolicy {
         return v
     }
 
+    /**
+     * Vapeur sans eau : le bol chaufferait à vide. Confirmation plutôt que refus, car une
+     * balance tarée après le remplissage affiche un poids faux. [weightG] et [scaleState]
+     * viennent d'une mesure fraîche ; nuls, rien n'est vérifié (pas de base, ou appel
+     * hors contrôleur).
+     */
+    fun checkWater(spec: JobSpec, weightG: Int?, scaleState: String?): List<Violation> {
+        if (spec.kind != JobKind.STEAM || spec.waterConfirmed || weightG == null || scaleState == null) return emptyList()
+        return when {
+            scaleState != "normal" ->
+                listOf(Violation(STEAM_WATER, tr("Balance indisponible : vérifiez qu'il y a au moins 500 g d'eau dans le bol")))
+            weightG < Limits.MIN_STEAM_WATER_G ->
+                listOf(Violation(STEAM_WATER, tr("Peu d'eau dans le bol (%d g) : la vapeur demande au moins 500 g d'eau", maxOf(0, weightG))))
+            else -> emptyList()
+        }
+    }
+
     const val HOT_BLEND = "hot_blend"
+    const val STEAM_WATER = "steam_water"
 
     fun formatDuration(ms: Long): String {
         val s = ms / 1000

@@ -360,13 +360,130 @@ class ControllerTest {
     }
 
     @Test fun steamDoesNotSpinTheBlade() {
-        val b = Bench().ready()
+        val b = Bench()
+        b.board.contentWeightG = 1000
+        b.ready()
         assertTrue(b.c.startJob(Programs.steam(60_000)).ok)
         b.step(10_000)
         val steam = b.tx.filter { it[1] == Operation.STEAM.wire }
         assertTrue(steam.isNotEmpty())
         assertTrue(steam.all { it[2] == 0 && it[3] == 17 })
         assertEquals(0, b.snap.rpm)
+    }
+
+    @Test fun steamAsksForWaterConfirmation() {
+        val b = Bench().ready()
+        b.board.contentWeightG = 120
+        b.step(2_000)
+        val v = b.c.startJob(Programs.steam(60_000))
+        assertFalse(v.ok)
+        assertEquals(listOf(SafetyPolicy.STEAM_WATER), v.violations.map { it.code })
+        assertTrue(b.snap.weightG in 110..120)
+        assertTrue(v.message, v.message.contains("${b.snap.weightG} g"))
+        b.step(1_000)
+        assertTrue(b.tx.none { it[1] == Operation.STEAM.wire })
+        assertTrue(b.c.startJob(Programs.steam(60_000).copy(waterConfirmed = true)).ok)
+        b.step(1_000)
+        assertEquals(Operation.STEAM.wire, b.lastOp())
+    }
+
+    @Test fun steamStartsWithWater() {
+        val b = Bench().ready()
+        b.board.contentWeightG = 600
+        b.step(2_000)
+        assertTrue(b.c.startJob(Programs.steam(60_000)).ok)
+    }
+
+    /** Balance en surcharge ou absente : le poids ne vaut rien, la confirmation est demandée. */
+    @Test fun steamAsksForWaterWhenScaleIsUnavailable() {
+        val b = Bench().ready()
+        b.board.contentWeightG = 1000
+        b.board.scaleFlags = 0x04
+        b.step(2_000)
+        assertTrue(b.c.startJob(Programs.steam(60_000)).has(SafetyPolicy.STEAM_WATER))
+        b.board.scaleFlags = 0x00
+        b.step(300)
+        assertTrue(b.c.startJob(Programs.steam(60_000)).has(SafetyPolicy.STEAM_WATER))
+        b.board.scaleFlags = 0x02
+        b.step(300)
+        assertTrue(b.c.startJob(Programs.steam(60_000)).ok)
+    }
+
+    /** La vérification de l'eau ne concerne que la vapeur : un bol vide se mixe normalement. */
+    @Test fun waterCheckIsForSteamOnly() {
+        val b = Bench().ready()
+        assertTrue(b.c.startJob(Programs.manual(1, 13, Direction.CLOCKWISE, 60_000)).ok)
+    }
+
+    @Test fun adjustNeedsAFreshSample() {
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 60_000))
+        b.step(2_000)
+        b.board.silent = true
+        b.step(1_000)
+        val v = b.c.adjust(speed = 4)
+        assertFalse(v.ok)
+        assertTrue(v.violations.any { it.code == "stale" })
+        b.board.silent = false
+        b.step(500)
+        assertTrue(b.c.adjust(speed = 4).ok)
+    }
+
+    @Test fun overTemperatureFaultsOnlyWhileStillRising() {
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(2, 13, Direction.CLOCKWISE, 300_000))
+        b.step(2_000)
+        b.board.forcedTempC = 120
+        b.step(25_000)
+        assertEquals("", b.snap.faultCode)
+        b.board.forcedTempC = 124
+        b.step(11_000)
+        assertEquals(FaultCode.OVER_TEMPERATURE.name, b.snap.faultCode)
+        assertEquals(JobState.ABORTED.name, b.snap.jobState)
+        assertEquals(Operation.STOP.wire, b.lastOp())
+    }
+
+    @Test fun extremeTemperatureFaultsInAnyState() {
+        val b = Bench().ready()
+        b.board.forcedTempC = 155
+        b.step(1_500)
+        assertEquals("", b.snap.faultCode)
+        b.step(1_000)
+        assertEquals(FaultCode.OVER_TEMPERATURE.name, b.snap.faultCode)
+        assertFalse(b.c.acknowledgeFault().ok)
+        b.board.forcedTempC = 90
+        b.step(300)
+        assertTrue(b.c.acknowledgeFault().ok)
+    }
+
+    @Test fun heaterOnDuringUnheatedPhaseFaults() {
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(3, 0, Direction.CLOCKWISE, 60_000))
+        b.step(2_000)
+        b.board.heaterStuck = true
+        b.step(5_000)
+        assertEquals("", b.snap.faultCode)
+        b.step(4_000)
+        assertEquals(FaultCode.UNEXPECTED_HEAT.name, b.snap.faultCode)
+        assertEquals(JobState.ABORTED.name, b.snap.jobState)
+        assertFalse(b.c.acknowledgeFault().ok)
+        b.board.heaterStuck = false
+        b.step(300)
+        assertTrue(b.c.acknowledgeFault().ok)
+    }
+
+    @Test fun coolingAfterHotStepDoesNotFault() {
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(2, 1, Direction.CLOCKWISE, 120_000))
+        b.step(1_000)
+        var t = 100
+        b.board.forcedTempC = t
+        repeat(60) {
+            b.step(1_000)
+            if (it % 5 == 0) b.board.forcedTempC = --t
+        }
+        assertEquals("", b.snap.faultCode)
+        assertEquals(JobState.RUNNING.name, b.snap.jobState)
     }
 
     @Test fun tareIsAOneFramePulse() {

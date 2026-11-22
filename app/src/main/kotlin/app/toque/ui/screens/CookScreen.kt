@@ -15,6 +15,7 @@ import app.toque.core.machine.MachineEvent
 import app.toque.core.machine.SafetyPolicy
 import app.toque.core.machine.Snapshot
 import app.toque.core.protocol.Mcc
+import app.toque.core.recipes.Chain
 import app.toque.core.recipes.Recipe
 import app.toque.core.recipes.StepProgram
 import app.toque.ui.HoldButton
@@ -323,24 +324,11 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         return spec.takeIf { SafetyPolicy.checkJob(it, null).isEmpty() }
     }
 
-    /**
-     * L'étape [i] continue directement la précédente : un réglage machine seul (pas de texte
-     * à suivre, pas de pesée), après une autre étape machine. Le Turbo reste toujours à l'appui.
-     */
-    private fun continues(i: Int): Boolean {
-        val s = recipe.steps.getOrNull(i) ?: return false
-        val m = s.machine ?: return false
-        val prev = recipe.steps.getOrNull(i - 1)?.machine ?: return false
-        return m.program != StepProgram.TURBO && prev.program != StepProgram.TURBO && s.weigh == null &&
-            (s.text.isBlank() || s.text == m.summary) && m.violations().isEmpty()
-    }
+    /** L'étape [i] part seule après la précédente (règles dans [Chain.continues]). */
+    private fun continues(i: Int): Boolean = Chain.continues(recipe.steps, i) { it in reviewed }
 
     /** Nombre d'étapes qui s'enchaîneront après l'étape [i]. */
-    private fun chainLength(i: Int): Int {
-        var n = 0
-        while (continues(i + n + 1)) n++
-        return n
-    }
+    private fun chainLength(i: Int): Int = Chain.length(recipe.steps, i) { it in reviewed }
 
     override fun onSnapshot(s: Snapshot) {
         val w = recipe.steps.getOrNull(index)?.weigh
@@ -365,7 +353,6 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
             seenPhase = s.phaseIndex
             val current = launchedStep + s.phaseIndex.coerceIn(0, launchedCount - 1)
             for (k in launchedStep until current) done += k
-            reviewed += current
             if (current != index) {
                 go(current)
                 return
@@ -431,8 +418,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
                 if (index == finished) {
                     a.machine.clearFinished()
                     if (index < recipe.steps.size - 1) {
-                        // Étape enchaînée : le réglage a été vu avec la première étape de la série.
-                        if (chain) reviewed += finished + 1
+                        // Une étape importée non vérifiée n'est jamais enchaînée (voir Chain).
                         go(finished + 1)
                         if (chain) launch()
                     }

@@ -61,8 +61,16 @@ class MachineClient(private val context: Context) {
 
         override fun onServiceDisconnected(name: ComponentName?) {
             service = null
-            snapshot = snapshot.copy(link = LinkState.OFFLINE, transportUp = false)
+            // Le processus machine est mort : le programme en cours ne reprendra pas avec le
+            // nouveau processus. L'interface ne doit plus le croire actif, et le dit.
+            val lost = snapshot
+            snapshot = lost.copy(link = LinkState.OFFLINE, transportUp = false,
+                jobActive = false, jobState = "", turboActive = false, waitingStop = false)
             for (l in ArrayList(snapshotListeners)) l(snapshot)
+            if (lost.busy) {
+                interruptedJob = lost.jobLabel.ifBlank { lost.kind?.label ?: tr("Turbo") }
+                deliverInterruption()
+            }
             // Android relance le service (START_STICKY) et rétablit la liaison tout seul.
         }
     }
@@ -83,6 +91,24 @@ class MachineClient(private val context: Context) {
     fun onEvent(l: (MachineEvent) -> Unit): () -> Unit {
         eventListeners += l
         return { eventListeners -= l }
+    }
+
+    /** Programme actif quand le processus machine s'est arrêté, en attente d'un écran pour l'annoncer. */
+    private var interruptedJob: String? = null
+    private val interruptionListeners = ArrayList<(String) -> Unit>()
+
+    /** [l] reçoit le libellé du programme interrompu par l'arrêt du processus machine, une seule fois. */
+    fun onInterrupted(l: (String) -> Unit): () -> Unit {
+        interruptionListeners += l
+        deliverInterruption()
+        return { interruptionListeners -= l }
+    }
+
+    private fun deliverInterruption() {
+        val label = interruptedJob ?: return
+        if (interruptionListeners.isEmpty()) return
+        interruptedJob = null
+        for (l in ArrayList(interruptionListeners)) l(label)
     }
 
     private fun sendRaw(what: Int, data: Bundle?, cb: ((Verdict) -> Unit)?) {

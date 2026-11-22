@@ -108,17 +108,22 @@ Turbo conditions…). Several flaws found while analysing the protocol are fixed
 
 | Stock app flaw | Toque |
 |---|---|
-| Start was requested before checking the lid | Lid, errors and data freshness are checked **before** any start |
+| Start was requested before checking the lid | Lid, errors and data freshness are checked **before** any start, and before any new setting while running |
 | No detection of a silent motor board | No reply for 1.5 s: everything stops and an alert is shown |
 | Serial write errors ignored | Stop and alert |
 | A STOP followed by a START could never send the stop | Any restart or direction change waits for a sample confirming **motor stopped** |
 | Serial reading without resynchronisation | Fragmented, merged or corrupted frames are handled |
 | The blade sometimes turned in steam mode | Steam at speed 0 |
+| Temperature only watched by the base | Everything stops if the bowl reaches 150 °C, keeps rising 15 °C above the setting, or heats during a step without heating (thresholds not yet measured on a real base) |
 
-Also added: confirmation (and a gradual ramp-up) before blending contents at 60 °C or more, a
+Also added: confirmation (and a gradual ramp-up) before blending contents at 60 °C or more,
+confirmation before steaming if the scale reads under 300 g or gives no reading, a press
+required before a chained recipe step that goes faster than speed 3, heats more or was not
+checked after import, a
 speed limit with the whisk, alerts that stay latched until acknowledged, nothing restarts on its
 own after a pause or an alert. When cold, the blade goes straight to the requested speed. Motor control runs in **its own process**: if the interface crashes, a cooking run is not
-cut off and finishes normally.
+cut off and finishes normally. If that process itself stops during a program, the interface
+shows "Cooking interrupted": the program does not resume on its own.
 
 ## Project layout
 
