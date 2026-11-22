@@ -574,5 +574,8 @@
   "max 15 min": "máx. 15 min",
   "max 99 min": "máx. 99 min",
   "Appuyez de nouveau sur le bouton pour reprendre": "Pulsa de nuevo el botón para reanudar",
-  "Appuyez de nouveau sur le bouton pour lancer": "Pulsa de nuevo el botón para iniciar"
+  "Appuyez de nouveau sur le bouton pour lancer": "Pulsa de nuevo el botón para iniciar",
+  "Chauffe… %d °C sur %d °C": "Calentando… %d °C de %d °C",
+  "Décompte à partir de la température atteinte": "Cuenta atrás desde la temperatura alcanzada",
+  "En cuisine guidée, le temps d'une étape chauffée ne se décompte qu'une fois la température demandée atteinte (20 minutes d'attente au plus).": "En cocina guiada, el tiempo de un paso con calor solo cuenta atrás cuando se alcanza la temperatura pedida (20 minutos de espera como máximo)."
 }

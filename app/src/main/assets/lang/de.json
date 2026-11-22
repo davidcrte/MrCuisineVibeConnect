@@ -574,5 +574,8 @@
   "max 15 min": "max. 15 Min.",
   "max 99 min": "max. 99 Min.",
   "Appuyez de nouveau sur le bouton pour reprendre": "Drehknopf erneut drücken, um fortzusetzen",
-  "Appuyez de nouveau sur le bouton pour lancer": "Drehknopf erneut drücken, um zu starten"
+  "Appuyez de nouveau sur le bouton pour lancer": "Drehknopf erneut drücken, um zu starten",
+  "Chauffe… %d °C sur %d °C": "Aufheizen… %d °C von %d °C",
+  "Décompte à partir de la température atteinte": "Zeit ab erreichter Temperatur zählen",
+  "En cuisine guidée, le temps d'une étape chauffée ne se décompte qu'une fois la température demandée atteinte (20 minutes d'attente au plus).": "In der geführten Küche läuft die Zeit eines beheizten Schritts erst, wenn die gewünschte Temperatur erreicht ist (höchstens 20 Minuten Wartezeit)."
 }
