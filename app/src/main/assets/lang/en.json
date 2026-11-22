@@ -570,5 +570,9 @@
   "Étapes %d à %d · %s": "Steps %d to %d · %s",
   "Éteinte": "Off",
   "écriture impossible": "write failed",
-  "… et %d autres": "… and %d more"
+  "… et %d autres": "… and %d more",
+  "max 15 min": "max 15 min",
+  "max 99 min": "max 99 min",
+  "Appuyez de nouveau sur le bouton pour reprendre": "Press the knob again to resume",
+  "Appuyez de nouveau sur le bouton pour lancer": "Press the knob again to start"
 }

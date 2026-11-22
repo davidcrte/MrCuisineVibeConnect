@@ -570,5 +570,9 @@
   "Étapes %d à %d · %s": "Schritte %d bis %d · %s",
   "Éteinte": "Aus",
   "écriture impossible": "Schreiben nicht möglich",
-  "… et %d autres": "… und %d weitere"
+  "… et %d autres": "… und %d weitere",
+  "max 15 min": "max. 15 Min.",
+  "max 99 min": "max. 99 Min.",
+  "Appuyez de nouveau sur le bouton pour reprendre": "Drehknopf erneut drücken, um fortzusetzen",
+  "Appuyez de nouveau sur le bouton pour lancer": "Drehknopf erneut drücken, um zu starten"
 }

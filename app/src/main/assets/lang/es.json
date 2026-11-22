@@ -570,5 +570,9 @@
   "Étapes %d à %d · %s": "Pasos %d a %d · %s",
   "Éteinte": "Apagada",
   "écriture impossible": "no se puede escribir",
-  "… et %d autres": "… y %d más"
+  "… et %d autres": "… y %d más",
+  "max 15 min": "máx. 15 min",
+  "max 99 min": "máx. 99 min",
+  "Appuyez de nouveau sur le bouton pour reprendre": "Pulsa de nuevo el botón para reanudar",
+  "Appuyez de nouveau sur le bouton pour lancer": "Pulsa de nuevo el botón para iniciar"
 }
