@@ -587,5 +587,12 @@
   "Voulez-vous vraiment abandonner ? Le programme en cours sera arrêté.": "¿Seguro que quiere abandonar? Se detendrá el programa en curso.",
   "Cette appli pilote-t-elle la vraie machine ?": "¿Esta app controla la máquina real?",
   "Démo : base simulée, rien ne chauffe. Machine réelle : exige le root. Modifiable dans Réglages › Machine.": "Demo: base simulada, nada se calienta. Máquina real: requiere root. Se puede cambiar en Ajustes › Máquina.",
-  "Maintien au chaud": "Mantener caliente"
+  "Maintien au chaud": "Mantener caliente",
+  "Minuteur": "Temporizador",
+  "Minuteur terminé": "Temporizador terminado",
+  "Prêt": "Listo",
+  "Réglez une durée": "Ajuste un tiempo",
+  "Temps écoulé": "Tiempo agotado",
+  "Pause": "Pausa",
+  "Remettre à zéro": "Poner a cero"
 }

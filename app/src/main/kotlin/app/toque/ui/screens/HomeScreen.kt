@@ -7,6 +7,7 @@ import android.widget.TextView
 import app.toque.core.i18n.I18n
 import app.toque.Prefs
 import app.toque.core.i18n.tr
+import app.toque.core.machine.KitchenTimer
 import app.toque.core.machine.RootShell
 import app.toque.recipes.LidlSync
 import app.toque.core.recipes.UserRecipes
@@ -29,8 +30,10 @@ class HomeScreen(a: MainActivity) : Screen(a) {
     private lateinit var resumeCard: LinearLayout
     private lateinit var resumeText: TextView
     private lateinit var knobChip: LinearLayout
+    private lateinit var timerChip: LinearLayout
     private lateinit var modeCard: LinearLayout
     private var unsub: (() -> Unit)? = null
+    private var unsubTimer: (() -> Unit)? = null
     private val tick = object : Runnable {
         override fun run() {
             refreshClock()
@@ -55,6 +58,12 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         knobChip.isClickable = true
         knobChip.setOnClickListener { a.push(KnobSetupScreen(a)) }
         left.addView(knobChip, Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))
+
+        // Minuteur de cuisine : accès toujours là, affiche le temps restant quand il compte.
+        timerChip = Ui.chip(c, tr("Minuteur"), Icon.Kind.CLOCK, Ui.TEXT2, size = 18f)
+        timerChip.isClickable = true
+        timerChip.setOnClickListener { a.openTimer() }
+        left.addView(timerChip, Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))
 
         // Premier lancement : choix explicite entre Démo et Machine réelle, proposé une seule fois.
         modeCard = Ui.vertical(c)
@@ -199,13 +208,36 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         refreshClock()
         refresh()
         unsub = a.app.recipes.onChange { refresh() }
+        unsubTimer = a.app.timer.listen { refreshTimer() }
+        refreshTimer()
         a.updates.onChange = { refresh() }
         view.removeCallbacks(tick)
         view.postDelayed(tick, 10_000)
     }
 
+    /** Pastille minuteur : « Minuteur » au repos, sinon le temps restant ou « terminé ». */
+    private fun refreshTimer() {
+        val t = a.app.timer.timer
+        val s = (t.remainingMs + 999) / 1000
+        val active = t.state != KitchenTimer.State.IDLE
+        val col = when (t.state) {
+            KitchenTimer.State.IDLE -> Ui.TEXT2
+            KitchenTimer.State.RINGING -> Ui.DANGER
+            KitchenTimer.State.PAUSED -> Ui.WARN
+            KitchenTimer.State.RUNNING -> Ui.ACCENT
+        }
+        Ui.chipText(timerChip).text = when {
+            t.state == KitchenTimer.State.RINGING -> tr("Minuteur terminé")
+            active -> "%s · %02d:%02d".format(tr("Minuteur"), s / 60, s % 60)
+            else -> tr("Minuteur")
+        }
+        Ui.chipText(timerChip).setTextColor(col)
+        (timerChip.getChildAt(0) as Icon).color = col
+    }
+
     override fun onHide() {
         unsub?.invoke()
+        unsubTimer?.invoke()
         a.updates.onChange = null
         view.removeCallbacks(tick)
     }

@@ -93,6 +93,11 @@ l'écran du robot.
   l'heure, et la température du bol quand il est chaud. Jamais pendant un programme ni sur la
   balance. Le geste qui réveille ne fait rien d'autre. Pendant la veille, l'anneau de la molette
   reste normal, passe en veilleuse blanche très faible ou s'éteint (Réglages › Écran).
+- **Minuteur de cuisine**, indépendant de la machine (il ne commande ni moteur ni chauffe) : de 10 s à
+  99 min 59 s, réglé par boutons ou au bouton rotatif (un cran = 1 min, appui = démarrer / pause).
+  Il continue de compter hors de son écran ; une pastille le rappelle dans la barre du haut et sur
+  l'accueil. À l'échéance, la sonnerie se répète toutes les 30 s (si le son et la répétition sont
+  activés) jusqu'à un toucher ou OK.
 - **Capteur du bol inversé** : sur certains robots (vu sur un SKMC 1200 C3), la base signale le bol
   présent quand il est retiré ; Réglages › Sécurité › Inverser le capteur du bol corrige cela.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton

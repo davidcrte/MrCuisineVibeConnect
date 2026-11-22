@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import app.toque.Prefs
 import app.toque.core.i18n.tr
 import app.toque.core.machine.JobState
+import app.toque.core.machine.KitchenTimer
 import app.toque.core.machine.LinkState
 import app.toque.core.machine.MachineEvent
 import app.toque.core.machine.Snapshot
@@ -46,6 +47,7 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
     private val temp = Ui.chip(a, "", Icon.Kind.THERMO, Ui.TEXT2)
     private val lid = Ui.chip(a, tr("Couvercle ouvert"), Icon.Kind.LID, Ui.WARN, 0x33FFC14D)
     private val link = Ui.chip(a, "", Icon.Kind.LINK, Ui.TEXT2)
+    private val timerChip = Ui.chip(a, "", Icon.Kind.CLOCK, Ui.TEXT2)
     private val clock = Ui.text(a, "", 22f, Ui.TEXT, Ui.LIGHT)
     private val home = Icon(a, Icon.Kind.HOME, Ui.TEXT2)
     private val handler = Handler(Looper.getMainLooper())
@@ -68,6 +70,7 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
         back.setOnClickListener { a.back() }
         addView(back, LayoutParams(Ui.u(52), Ui.u(52)))
         addView(titleView, LayoutParams(0, Ui.WRAP, 1f).apply { leftMargin = Ui.u(6) })
+        addView(timerChip, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
         addView(lid, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
         addView(temp, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
         addView(link, Ui.lp(Ui.WRAP, Ui.WRAP, r = 16))
@@ -78,6 +81,9 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
         addView(home, LayoutParams(Ui.u(52), Ui.u(52)))
         lid.visibility = View.GONE
         temp.visibility = View.GONE
+        timerChip.visibility = View.GONE
+        timerChip.isClickable = true
+        timerChip.setOnClickListener { a.openTimer() }
         // Accès caché aux réglages Android : 5 appuis rapides sur l'heure.
         clock.setOnClickListener {
             val now = System.currentTimeMillis()
@@ -100,6 +106,22 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
         titleView.text = t
         back.visibility = if (canGoBack) View.VISIBLE else View.INVISIBLE
         home.visibility = if (canGoBack) View.VISIBLE else View.GONE
+    }
+
+    /** Pastille du minuteur de cuisine : visible dès qu'il compte, est en pause ou sonne ; un toucher ouvre l'écran. */
+    fun updateTimer() {
+        val t = a.app.timer.timer
+        if (t.state == KitchenTimer.State.IDLE) { timerChip.visibility = View.GONE; return }
+        timerChip.visibility = View.VISIBLE
+        val s = (t.remainingMs + 999) / 1000
+        val col = when (t.state) {
+            KitchenTimer.State.RINGING -> Ui.DANGER
+            KitchenTimer.State.PAUSED -> Ui.WARN
+            else -> Ui.ACCENT
+        }
+        Ui.chipText(timerChip).text = if (t.state == KitchenTimer.State.RINGING) tr("Minuteur terminé") else "%02d:%02d".format(s / 60, s % 60)
+        Ui.chipText(timerChip).setTextColor(col)
+        (timerChip.getChildAt(0) as Icon).color = col
     }
 
     fun update(s: Snapshot) {

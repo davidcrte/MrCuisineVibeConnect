@@ -88,6 +88,10 @@ screen.
   bowl temperature when it is hot. Never during a program or on the scale. The gesture that wakes
   the screen does nothing else. During standby, the knob ring stays normal, dims to a faint white
   night-light, or turns off (*Settings › Screen*).
+- **Kitchen timer**, independent of the machine (it drives neither motor nor heating): from 10 s to
+  99 min 59 s, set with buttons or the knob (one notch = 1 min, press = start / pause). It keeps
+  counting off its screen; a chip reminds you of it in the top bar and on Home. When it ends, the
+  chime repeats every 30 s (if sound and repeat are on) until a touch or OK.
 - **Bowl sensor that reads the wrong way round**: on some robots (seen on an SKMC 1200 C3) the
   base reports the bowl as present when it is removed; *Settings › Safety › Invert the bowl
   sensor* fixes it.

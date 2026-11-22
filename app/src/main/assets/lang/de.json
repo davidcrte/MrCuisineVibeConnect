@@ -587,5 +587,12 @@
   "Voulez-vous vraiment abandonner ? Le programme en cours sera arrêté.": "Möchten Sie wirklich abbrechen? Das laufende Programm wird gestoppt.",
   "Cette appli pilote-t-elle la vraie machine ?": "Steuert diese App die echte Maschine?",
   "Démo : base simulée, rien ne chauffe. Machine réelle : exige le root. Modifiable dans Réglages › Machine.": "Demo: simulierte Basis, nichts heizt. Echte Maschine: erfordert Root. Änderbar unter Einstellungen › Maschine.",
-  "Maintien au chaud": "Warmhalten"
+  "Maintien au chaud": "Warmhalten",
+  "Minuteur": "Timer",
+  "Minuteur terminé": "Timer abgelaufen",
+  "Prêt": "Bereit",
+  "Réglez une durée": "Zeit einstellen",
+  "Temps écoulé": "Zeit abgelaufen",
+  "Pause": "Pause",
+  "Remettre à zéro": "Zurücksetzen"
 }

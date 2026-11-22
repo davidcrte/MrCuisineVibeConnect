@@ -32,6 +32,7 @@ import app.toque.recipes.SyncService
 import app.toque.ui.screens.HomeScreen
 import app.toque.ui.screens.KnobSetupScreen
 import app.toque.ui.screens.SettingsScreen
+import app.toque.ui.screens.TimerScreen
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,6 +51,7 @@ class MainActivity : Activity() {
     private var unsubscribe: (() -> Unit)? = null
     private var unsubscribeEvents: (() -> Unit)? = null
     private var unsubscribeInterrupted: (() -> Unit)? = null
+    private var unsubscribeTimer: (() -> Unit)? = null
     private var tone: ToneGenerator? = null
     private var toastView: TextView? = null
     private var refusalBanner: View? = null
@@ -128,6 +130,8 @@ class MainActivity : Activity() {
         }
         unsubscribeEvents = app.machine.onEvent { e -> onMachineEvent(e) }
         unsubscribeInterrupted = app.machine.onInterrupted { label -> showInterrupted(label) }
+        unsubscribeTimer = app.timer.listen { topBar.updateTimer() }
+        topBar.updateTimer()
         topBar.startClock()
         standby.start()
         updates.onStart()
@@ -145,6 +149,7 @@ class MainActivity : Activity() {
         unsubscribe?.invoke()
         unsubscribeEvents?.invoke()
         unsubscribeInterrupted?.invoke()
+        unsubscribeTimer?.invoke()
         topBar.stopClock()
         standby.stop()
         updates.onStop()
@@ -178,6 +183,12 @@ class MainActivity : Activity() {
         stack.lastOrNull()?.onHide()
         stack += s
         show(s)
+    }
+
+    /** Ouvre le minuteur de cuisine (pastille de la barre du haut, accueil), sans l'empiler deux fois. */
+    fun openTimer() {
+        if (current is TimerScreen) return
+        push(TimerScreen(this))
     }
 
     /** Remplace l'écran courant (pas de retour vers lui). */
@@ -234,7 +245,7 @@ class MainActivity : Activity() {
 
     /** Le geste qui réveille l'écran ne fait rien d'autre (on ne lance rien en le touchant dans le noir). */
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        if (event.actionMasked == MotionEvent.ACTION_DOWN) stopEndAlarm()
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) { stopEndAlarm(); app.timer.silence() }
         if (event.actionMasked == MotionEvent.ACTION_DOWN) swallowTouch = standby.onInput()
         if (swallowTouch) {
             if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) swallowTouch = false
@@ -244,7 +255,7 @@ class MainActivity : Activity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN) stopEndAlarm()
+        if (event.action == KeyEvent.ACTION_DOWN) { stopEndAlarm(); app.timer.silence() }
         if (event.action == KeyEvent.ACTION_DOWN && standby.onKnob()) return true
         // Retour reste Retour (tablettes et émulateur) : jamais un cran du bouton, même appris par erreur.
         val isBack = event.keyCode == KeyEvent.KEYCODE_BACK

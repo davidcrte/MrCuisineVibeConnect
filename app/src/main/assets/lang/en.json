@@ -587,5 +587,12 @@
   "Voulez-vous vraiment abandonner ? Le programme en cours sera arrêté.": "Do you really want to abandon? The running program will be stopped.",
   "Cette appli pilote-t-elle la vraie machine ?": "Does this app control the real machine?",
   "Démo : base simulée, rien ne chauffe. Machine réelle : exige le root. Modifiable dans Réglages › Machine.": "Demo: simulated base, nothing heats. Real machine: requires root. Can be changed in Settings › Machine.",
-  "Maintien au chaud": "Keep warm"
+  "Maintien au chaud": "Keep warm",
+  "Minuteur": "Timer",
+  "Minuteur terminé": "Timer done",
+  "Prêt": "Ready",
+  "Réglez une durée": "Set a time",
+  "Temps écoulé": "Time is up",
+  "Pause": "Pause",
+  "Remettre à zéro": "Reset"
 }

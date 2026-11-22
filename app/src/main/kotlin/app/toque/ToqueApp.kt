@@ -21,6 +21,7 @@ class ToqueApp : Application() {
         private set
     val machine: MachineClient by lazy { MachineClient(this) }
     val recipes: RecipeRepo by lazy { RecipeRepo(this) }
+    val timer: TimerDriver by lazy { TimerDriver(prefs) }
 
     override fun onCreate() {
         super.onCreate()
