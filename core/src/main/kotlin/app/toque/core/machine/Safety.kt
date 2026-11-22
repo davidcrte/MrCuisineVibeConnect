@@ -282,6 +282,18 @@ object Programs {
         cyclic = true,
     )
 
+    /** Maintien au chaud : 65 °C, vitesse 1, jamais plus de 30 min. Proposé en fin de recette, lancé sur appui. */
+    const val KEEP_WARM_C = 65
+    const val KEEP_WARM_MAX_MS = 30 * 60_000L
+
+    fun keepWarm(durationMs: Long = KEEP_WARM_MAX_MS) = manual(
+        speed = 1,
+        temperatureLevel = Mcc.levelForCelsius(KEEP_WARM_C),
+        direction = CW,
+        durationMs = durationMs.coerceIn(Limits.MIN_MS, KEEP_WARM_MAX_MS),
+        label = tr("Maintien au chaud"),
+    )
+
     fun turboSetting() = Setting(Operation.TURBO, 10, 0, CW)
 
     /**

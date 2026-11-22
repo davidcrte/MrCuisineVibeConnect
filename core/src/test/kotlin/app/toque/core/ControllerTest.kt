@@ -110,6 +110,31 @@ class ControllerTest {
         assertTrue(v.has("lid"))
     }
 
+    @Test fun keepWarmIsAHeatedSlowManualProgramWithinLimits() {
+        val k = Programs.keepWarm()
+        assertEquals(65, k.phases.single().setting.temperatureC)
+        assertEquals(1, k.phases.single().setting.speed)
+        assertEquals(30 * 60_000L, k.totalMs)
+        assertTrue(SafetyPolicy.checkJob(k, null).isEmpty())
+        assertEquals("jamais au-delà de 30 min", 30 * 60_000L, Programs.keepWarm(2 * 3_600_000L).totalMs)
+        val b = Bench().ready()
+        assertTrue(b.c.startJob(k).ok)
+    }
+
+    @Test fun keepWarmGoesThroughTheSameStartChecks() {
+        val b = Bench().ready()
+        b.board.lidOpen = true
+        b.step(200)
+        val v = b.c.startJob(Programs.keepWarm())
+        assertFalse(v.ok)
+        assertTrue(v.has("lid"))
+    }
+
+    @Test fun waterErrorHasADedicatedMessage() {
+        assertEquals(Mcc.boardErrorMessage(6), "Pas d'eau (vapeur)")
+        assertTrue(Mcc.boardErrorMessage(5) != Mcc.boardErrorMessage(6))
+    }
+
     @Test fun requiredBowlRefusesToStartWithoutIt() {
         val b = Bench(ControllerConfig(requireBowl = true)).ready()
         assertTrue(b.snap.bowlDetected)
