@@ -52,6 +52,7 @@ class MainActivity : Activity() {
     private var unsubscribeInterrupted: (() -> Unit)? = null
     private var tone: ToneGenerator? = null
     private var toastView: TextView? = null
+    private var refusalBanner: View? = null
     private var lastKnobMs = 0L
     private lateinit var standby: Standby
     lateinit var updates: UpdateAlert
@@ -297,6 +298,7 @@ class MainActivity : Activity() {
         current?.onEvent(e)
         if (e.type != EventType.LINK_CHANGED && e.type != EventType.PHASE_CHANGED) standby.poke()
         when (e.type) {
+            EventType.JOB_STARTED -> dismissRefusal()
             EventType.JOB_FINISHED -> if (!ownSound) { chime(2); armEndAlarm { chime(2) } }
             EventType.FAULT -> { stopEndAlarm(); chime(3); toast(e.message, Ui.DANGER) }
             EventType.LID_OPENED -> if (snapshot.busy || snapshot.state != null) toast(tr("Couvercle ouvert : pause"), Ui.WARN)
@@ -373,8 +375,24 @@ class MainActivity : Activity() {
         }, 3_200)
     }
 
+    /** Refus de sécurité : bandeau persistant, fermé à la main (un nouveau refus remplace le précédent). */
     fun refusal(v: Verdict) {
-        if (!v.ok) toast(v.message, Ui.WARN)
+        if (v.ok) return
+        dismissRefusal()
+        val bar = Ui.horizontal(this)
+        bar.setPadding(Ui.u(24), Ui.u(10), Ui.u(12), Ui.u(10))
+        bar.background = Ui.round(Ui.SURFACE3, 24f, Ui.WARN, 2f)
+        bar.addView(Ui.text(this, v.message, 19f, Ui.WARN, Ui.MEDIUM), Ui.lp(0, Ui.WRAP, 1f))
+        bar.addView(Ui.button(this, tr("Fermer"), Ui.Style.GHOST, Icon.Kind.CLOSE, height = 52, textSize = 18f) { dismissRefusal() })
+        val lp = Ui.flp(Ui.u(860), Ui.WRAP, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL)
+        lp.bottomMargin = Ui.u(110)
+        root.addView(bar, lp)
+        refusalBanner = bar
+    }
+
+    private fun dismissRefusal() {
+        refusalBanner?.let { root.removeView(it) }
+        refusalBanner = null
     }
 
     /** Affiche une carte modale au centre de l'écran. */
