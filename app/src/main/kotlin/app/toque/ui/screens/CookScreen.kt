@@ -286,7 +286,8 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         val first = index
         val m = recipe.steps[first].machine ?: return
         val series = series(first)
-        val job = series ?: m.toJob(tr("Étape %d · %s", first + 1, recipe.title), hotBlendConfirmed = hotBlendOk) ?: return
+        val job = (series ?: m.toJob(tr("Étape %d · %s", first + 1, recipe.title), hotBlendConfirmed = hotBlendOk) ?: return)
+            .copy(countFromTemp = a.prefs.countFromTemp)
         val count = series?.phases?.size ?: 1
         a.prefs.guidedRecipe = recipe.id
         a.prefs.guidedStep = first
@@ -378,7 +379,9 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         if (mine && ps != null) {
             ps.setTextColor(Ui.TEXT2)
             ps.text = when (s.state) {
-                JobState.RUNNING, JobState.STARTING -> tr("En cours… reste %s", Ui.clock(s.remainingMs))
+                JobState.RUNNING, JobState.STARTING ->
+                    if (s.heatingUp) tr("Chauffe… %d °C sur %d °C", s.actualTempC, Mcc.celsiusForLevel(s.jobTempLevel))
+                    else tr("En cours… reste %s", Ui.clock(s.remainingMs))
                 JobState.STOPPING -> tr("Arrêt du moteur…")
                 JobState.PAUSED -> tr("En pause")
                 JobState.FINISHED -> tr("Terminé")

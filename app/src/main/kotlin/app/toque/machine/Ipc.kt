@@ -95,6 +95,7 @@ object Ipc {
             accessory = try { Accessory.valueOf(b.getString("accessory") ?: "") } catch (_: Exception) { Accessory.BLADE },
             hotBlendConfirmed = b.getBoolean("hot"),
             waterConfirmed = b.getBoolean("water"),
+            countFromTemp = b.getBoolean("fromTemp"),
         )
     }
 

@@ -158,6 +158,9 @@ class MachineController(
         var pausedAt = 0L
         var endReason = ""
         var everStarted = false
+        /** Décompte sur température : consigne de la phase atteinte (ou attente abandonnée). */
+        var tempReached = false
+        var heatSinceMs = 0L
 
         val phase: Phase get() = spec.phases[phaseIndex]
         val active: Boolean get() = state == JobState.STARTING || state == JobState.RUNNING || state == JobState.PAUSED
@@ -567,8 +570,9 @@ class MachineController(
                 }
             }
             JobState.RUNNING -> {
-                j.totalElapsed += dt
                 val ws = j.waitingStop
+                if (ws == null && heatWait(j, now)) return
+                j.totalElapsed += dt
                 if (ws != null) {
                     if (barrierMet(ws, now)) {
                         j.waitingStop = null
@@ -610,9 +614,33 @@ class MachineController(
         }
     }
 
+    /** Le décompte est suspendu : on chauffe encore vers la consigne de la phase courante. */
+    private fun heatWaiting(j: ActiveJob): Boolean {
+        val s = j.phase.setting
+        return j.spec.countFromTemp && j.state == JobState.RUNNING && j.waitingStop == null &&
+            !s.isRest && s.heated && !j.tempReached
+    }
+
+    /** Évalue l'attente de température ; vrai tant que le décompte doit rester suspendu. */
+    private fun heatWait(j: ActiveJob, now: Long): Boolean {
+        if (!heatWaiting(j)) return false
+        val t = latest
+        if (t != null && fresh(now) && t.actualTemperature >= j.phase.setting.temperatureC - Limits.HEAT_REACHED_MARGIN_C) {
+            j.tempReached = true
+            return false
+        }
+        if (now - j.heatSinceMs > Limits.MAX_MS_HEATUP) {
+            j.tempReached = true
+            return false
+        }
+        return true
+    }
+
     /** Vérifie qu'on peut (re)lancer la phase courante ; sinon met en pause. */
     private fun enterPhase(j: ActiveJob, now: Long): Boolean {
         val s = j.phase.setting
+        j.tempReached = false
+        j.heatSinceMs = now
         if (s.isRest) return true
         val v = ArrayList(baseChecks(now))
         v += SafetyPolicy.checkSetting(s, j.spec.kind, j.spec.accessory, actualTemp(), j.spec.hotBlendConfirmed)
@@ -725,6 +753,7 @@ class MachineController(
             elapsedMs = j?.totalElapsed ?: 0,
             totalMs = j?.spec?.totalMs ?: 0,
             remainingMs = remaining,
+            heatingUp = j != null && heatWaiting(j),
             waitingStop = j != null && (j.waitingStop != null || j.state == JobState.STARTING || j.state == JobState.STOPPING),
             jobSpeed = s?.speed ?: 0,
             jobTempLevel = s?.temperatureLevel ?: 0,

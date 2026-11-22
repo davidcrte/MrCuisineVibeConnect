@@ -57,6 +57,12 @@ data class JobSpec(
     val hotBlendConfirmed: Boolean = false,
     /** Vapeur : l'utilisateur a confirmé qu'il y a de l'eau malgré la balance. */
     val waterConfirmed: Boolean = false,
+    /**
+     * Étapes chauffées : le décompte de chaque phase ne démarre qu'une fois la température
+     * demandée atteinte (à [Limits.HEAT_REACHED_MARGIN_C] près), au plus [Limits.MAX_MS_HEATUP]
+     * d'attente. Ne change aucune limite : la chauffe reste surveillée par les mêmes garde-fous.
+     */
+    val countFromTemp: Boolean = false,
 )
 
 /** Raison précise d'un refus, affichable telle quelle. */
@@ -73,6 +79,10 @@ object Limits {
     const val MAX_MS_TOAST = 840_000L
     const val MAX_MS_TURBO_PRESS = 3_000L
     const val MIN_MS = 1_000L
+    /** Température « atteinte » : à cet écart sous la consigne (la régulation oscille autour). */
+    const val HEAT_REACHED_MARGIN_C = 3
+    /** Attente maximale de la température avant que le décompte ne démarre quand même. */
+    const val MAX_MS_HEATUP = 20 * 60_000L
 
     // Surchauffe. Seuils choisis sans mesure sur la vraie base : à confirmer en relevant la
     // température d'un rissolage réel (130 °C).

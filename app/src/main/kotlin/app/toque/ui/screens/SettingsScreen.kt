@@ -102,6 +102,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         safety.addView(toggle(tr("Enchaîner les étapes machine des recettes"), a.prefs.chainSteps) { a.prefs.chainSteps = it }, Ui.lp(t = 10))
         safety.addView(Ui.text(c, tr("Les réglages qui se suivent sans geste à faire entre eux partent ensemble d'un seul appui sur Lancer : la lame passe directement à la vitesse et à la température suivantes."),
             15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        safety.addView(toggle(tr("Décompte à partir de la température atteinte"), a.prefs.countFromTemp) { a.prefs.countFromTemp = it }, Ui.lp(t = 10))
+        safety.addView(Ui.text(c, tr("En cuisine guidée, le temps d'une étape chauffée ne se décompte qu'une fois la température demandée atteinte (20 minutes d'attente au plus)."),
+            15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
         safety.addView(toggle(tr("Sons"), a.prefs.sound) { a.prefs.sound = it }, Ui.lp(t = 10))
         safety.addView(toggle(tr("Répéter l'alarme de fin"), a.prefs.repeatEndAlarm) { a.prefs.repeatEndAlarm = it }, Ui.lp(t = 10))
         safety.addView(Ui.text(c, tr("Le son de fin de programme est rejoué toutes les 30 secondes, pendant 10 minutes au plus, jusqu'à ce que vous touchiez l'écran ou le bouton rotatif."),

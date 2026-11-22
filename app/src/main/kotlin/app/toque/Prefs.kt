@@ -90,6 +90,13 @@ class Prefs(context: Context) {
             p.edit().putBoolean("chainSteps", v).commit()
         }
 
+    /** Cuisine guidée : le décompte des étapes chauffées part de la température atteinte. */
+    var countFromTemp: Boolean
+        get() = p.getBoolean("countFromTemp", true)
+        set(v) {
+            p.edit().putBoolean("countFromTemp", v).commit()
+        }
+
     var sound: Boolean
         get() = p.getBoolean("sound", true)
         set(v) {
