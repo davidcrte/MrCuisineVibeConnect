@@ -577,5 +577,15 @@
   "Appuyez de nouveau sur le bouton pour lancer": "Drehknopf erneut drücken, um zu starten",
   "Chauffe… %d °C sur %d °C": "Aufheizen… %d °C von %d °C",
   "Décompte à partir de la température atteinte": "Zeit ab erreichter Temperatur zählen",
-  "En cuisine guidée, le temps d'une étape chauffée ne se décompte qu'une fois la température demandée atteinte (20 minutes d'attente au plus).": "In der geführten Küche läuft die Zeit eines beheizten Schritts erst, wenn die gewünschte Temperatur erreicht ist (höchstens 20 Minuten Wartezeit)."
+  "En cuisine guidée, le temps d'une étape chauffée ne se décompte qu'une fois la température demandée atteinte (20 minutes d'attente au plus).": "In der geführten Küche läuft die Zeit eines beheizten Schritts erst, wenn die gewünschte Temperatur erreicht ist (höchstens 20 Minuten Wartezeit).",
+  "Ces réglages protègent la personne qui cuisine. Ne les relâchez que si vous savez ce que vous faites : lame en rotation, contenu chaud.": "Diese Einstellungen schützen die kochende Person. Lockern Sie sie nur, wenn Sie wissen, was Sie tun: rotierende Klinge, heißer Inhalt.",
+  "Maintenir au chaud ?": "Warmhalten?",
+  "Le bol sera maintenu à %d °C, vitesse 1, pendant 30 minutes au plus.": "Der Topf wird höchstens 30 Minuten bei %d °C und Stufe 1 warmgehalten.",
+  "Maintenir au chaud": "Warmhalten",
+  "Non merci": "Nein danke",
+  "Abandonner ?": "Abbrechen?",
+  "Voulez-vous vraiment abandonner ? Le programme en cours sera arrêté.": "Möchten Sie wirklich abbrechen? Das laufende Programm wird gestoppt.",
+  "Cette appli pilote-t-elle la vraie machine ?": "Steuert diese App die echte Maschine?",
+  "Démo : base simulée, rien ne chauffe. Machine réelle : exige le root. Modifiable dans Réglages › Machine.": "Demo: simulierte Basis, nichts heizt. Echte Maschine: erfordert Root. Änderbar unter Einstellungen › Maschine.",
+  "Maintien au chaud": "Warmhalten"
 }
