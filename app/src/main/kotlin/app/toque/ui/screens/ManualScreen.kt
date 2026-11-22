@@ -214,7 +214,7 @@ class ManualScreen(
     }
 
     private fun refresh() {
-        val maxS = if (speed > 6) "max 15 min" else "max 99 min"
+        val maxS = if (speed > 6) tr("max 15 min") else tr("max 99 min")
         timeCard.set(Ui.clock(seconds * 1000L), "", maxS)
         if (tempLevel == 0) tempCard.set("—", "", tr("Sans chauffe"), Ui.TEXT2)
         else {
@@ -290,10 +290,21 @@ class ManualScreen(
     override fun onKnobPress(): Boolean {
         if (onPick != null) { start(); return true }
         val s = a.snapshot
+        val now = android.os.SystemClock.elapsedRealtime()
         when {
-            s.state == JobState.RUNNING -> a.machine.pause { a.refusal(it) }
-            else -> start()
+            s.state == JobState.RUNNING -> {
+                a.machine.pause { a.refusal(it) }
+                knobArmedUntil = now + KNOB_RESUME_WINDOW_MS
+            }
+            s.state == JobState.PAUSED && now > knobArmedUntil -> {
+                knobArmedUntil = now + KNOB_RESUME_WINDOW_MS
+                a.toast(tr("Appuyez de nouveau sur le bouton pour reprendre"))
+            }
+            else -> { knobArmedUntil = 0L; start() }
         }
         return true
     }
+
+    private var knobArmedUntil = 0L
+    private companion object { const val KNOB_RESUME_WINDOW_MS = 3000L }
 }
