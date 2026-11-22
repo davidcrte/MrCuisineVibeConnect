@@ -33,6 +33,9 @@ class Standby(private val a: MainActivity, private val root: FrameLayout) {
 
     val asleep: Boolean get() = view != null
 
+    /** Sortie de veille (pas à l'arrêt de l'écran) : l'alerte de mise à jour regarde à ce moment-là. */
+    var onWake: (() -> Unit)? = null
+
     private val check = object : Runnable {
         override fun run() {
             if (shouldSleep()) sleep()
@@ -119,7 +122,10 @@ class Standby(private val a: MainActivity, private val root: FrameLayout) {
         v.alpha = 0f
         v.animate().alpha(1f).setDuration(800).start()
         brightness(0.02f)
-        if (a.prefs.standbyKnobLight) KnobLight.start()
+        when (a.prefs.standbyKnob) {
+            "dim" -> KnobLight.start(KnobLight.NIGHT_LEVEL)
+            "off" -> KnobLight.start(0)
+        }
         main.postDelayed(tick, 60_000)
     }
 
@@ -134,6 +140,7 @@ class Standby(private val a: MainActivity, private val root: FrameLayout) {
         hot = null
         brightness(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE)
         KnobLight.stop()
+        if (running) onWake?.invoke()
     }
 
     private fun refresh() {

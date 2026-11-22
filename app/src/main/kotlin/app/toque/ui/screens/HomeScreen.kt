@@ -6,6 +6,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
+import app.toque.core.recipes.UserRecipes
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
 import app.toque.ui.Screen
@@ -21,6 +22,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
     private lateinit var greeting: TextView
     private lateinit var recipesSub: TextView
     private lateinit var favSub: TextView
+    private lateinit var settingsSub: TextView
     private lateinit var resumeCard: LinearLayout
     private lateinit var resumeText: TextView
     private lateinit var knobChip: LinearLayout
@@ -98,12 +100,16 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         recipesSub = s1
         row1.addView(t1, tileLp(true))
         row1.addView(tile(Icon.Kind.POT, tr("Cuisson\nmanuelle"), hasSub = false) { a.push(ManualScreen(a)) }.first, tileLp(true))
-        row1.addView(tile(Icon.Kind.KNEAD, tr("Programmes"), tr("Pétrir, vapeur, rissoler")) { a.push(ProgramsScreen(a)) }.first, tileLp(false))
+        row1.addView(tile(Icon.Kind.KNEAD, tr("Programmes"), tr("Pétrir, vapeur, rissoler, nettoyage")) { a.push(ProgramsScreen(a)) }.first, tileLp(false))
         row2.addView(tile(Icon.Kind.SCALE, tr("Balance"), tr("Peser au gramme")) { a.push(ScaleScreen(a)) }.first, tileLp(true))
         val (t5, s5) = tile(Icon.Kind.STAR, tr("Favoris")) { a.push(RecipesScreen(a, favorites = true)) }
         favSub = s5
         row2.addView(t5, tileLp(true))
-        row2.addView(tile(Icon.Kind.SETTINGS, tr("Réglages"), hasSub = false) { a.push(SettingsScreen(a)) }.first, tileLp(false))
+        // Sous-titre seulement quand une nouvelle version de Toque attend d'être installée.
+        val (t6, s6) = tile(Icon.Kind.SETTINGS, tr("Réglages")) { a.push(SettingsScreen(a)) }
+        settingsSub = s6
+        settingsSub.setTextColor(Ui.ACCENT)
+        row2.addView(t6, tileLp(false))
         grid.addView(row1, LinearLayout.LayoutParams(Ui.MATCH, 0, 1f).apply { bottomMargin = Ui.u(16) })
         grid.addView(row2, LinearLayout.LayoutParams(Ui.MATCH, 0, 1f))
         root.addView(grid, LinearLayout.LayoutParams(0, Ui.MATCH, 0.58f))
@@ -148,14 +154,22 @@ class HomeScreen(a: MainActivity) : Screen(a) {
     private fun refresh() {
         val repo = a.app.recipes
         val n = repo.count
+        val perso = repo.index.entries.count { UserRecipes.isUser(it.id) }
+        val lidl = n - perso
         recipesSub.text = when {
             !repo.loaded -> tr("Chargement…")
             n == 0 -> tr("Aucune recette Lidl pour l'instant")
-            else -> tr("%d recettes Lidl", n)
+            else -> listOfNotNull(
+                when (lidl) { 0 -> null; 1 -> tr("1 recette Lidl"); else -> tr("%d recettes Lidl", lidl) },
+                when (perso) { 0 -> null; 1 -> tr("1 recette perso"); else -> tr("%d recettes perso", perso) },
+            ).joinToString("\n")
         }
         val favs = repo.index.entries.count { it.favorite }
         favSub.text = if (favs == 0) tr("Aucun favori") else if (favs == 1) tr("1 favori") else tr("%d favoris", favs)
         knobChip.visibility = if (a.prefs.knobReady) View.GONE else View.VISIBLE
+        val update = a.updates.available
+        settingsSub.text = if (update != null) tr("Version %s disponible", update.version) else ""
+        settingsSub.visibility = if (update != null) View.VISIBLE else View.GONE
         val guided = a.prefs.guidedRecipe
         val title = if (guided.isEmpty()) null else repo.index.entries.firstOrNull { it.id == guided }?.title
         resumeCard.visibility = if (title != null) View.VISIBLE else View.GONE
@@ -166,12 +180,14 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         refreshClock()
         refresh()
         unsub = a.app.recipes.onChange { refresh() }
+        a.updates.onChange = { refresh() }
         view.removeCallbacks(tick)
         view.postDelayed(tick, 10_000)
     }
 
     override fun onHide() {
         unsub?.invoke()
+        a.updates.onChange = null
         view.removeCallbacks(tick)
     }
 

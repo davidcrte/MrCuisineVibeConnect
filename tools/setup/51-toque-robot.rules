@@ -1,0 +1,11 @@
+# Toque setup on Linux: lets the person sitting at this computer talk to the Monsieur Cuisine
+# Connect over USB without root, and keeps ModemManager away from its download-mode serial port.
+# Installed by hand (toque-setup.sh 'prepare' prints the command):
+#   sudo install -m 644 tools/setup/51-toque-robot.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules
+# 0e8d = MediaTek: download mode (0e8d:2000, "MT65xx Preloader"; libusb and /dev/ttyACM*) and adb.
+# 18d1 = Google: the ID many TWRP builds use for adb.
+# "uaccess" gives access to the user logged in on the local seat (systemd-logind), not to SSH sessions.
+SUBSYSTEM=="usb", ATTR{idVendor}=="0e8d", ENV{ID_MM_DEVICE_IGNORE}="1", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0e8d", ENV{ID_MM_DEVICE_IGNORE}="1", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0660", TAG+="uaccess"

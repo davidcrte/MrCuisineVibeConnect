@@ -2,37 +2,38 @@
 
 🇬🇧 **[English version](README.md)**
 
+> **Version macOS.** Ceci est une copie de [Wuki60/MrCuisineVibeConnect](https://github.com/Wuki60/MrCuisineVibeConnect)
+> dont les outils d'installation tournent sur un **Mac** : des scripts shell au lieu de PowerShell,
+> et [mtkclient](https://github.com/bkerler/mtkclient) au lieu de SP Flash Tool et de son pilote
+> Windows. L'appli Toque est inchangée et se met toujours à jour depuis les versions du dépôt
+> d'origine. L'installation depuis macOS a été faite de bout en bout sur un vrai robot en
+> novembre 2026 ; voir [AGENTS.md](AGENTS.md).
+
 **Toque**, une interface moderne et rapide pour le robot **Monsieur Cuisine Connect** (SKMC 1200),
 qui remplace l'appli d'origine sur la tablette du robot tout en gardant **les recettes Lidl**.
 
 > Projet indépendant, non affilié à Lidl, SilverCrest ni Hoyer. Le pilotage du moteur repose
 > sur une analyse publique du protocole. Depuis octobre 2026, Toque tourne sur des SKMC 1200
 > (révisions A1, B2 et C3) en France et en Espagne, et sur un SKMC 1100 A1 (avec un recovery
-> adapté, voir #10). À utiliser à vos risques, en suivant la procédure de premier essai.
+> adapté, voir l'[issue #10](https://github.com/Wuki60/MrCuisineVibeConnect/issues/10) du dépôt
+> d'origine). À utiliser à vos risques, en suivant la procédure de premier essai.
 >
 > L'interface existe en **français**, **anglais**, **allemand** et **espagnol** (*Réglages › Langue · Language*).
 
-## Installer avec un agent IA
+## Installer
 
-Le plus simple : confiez l'installation à un agent IA qui peut piloter votre PC Windows (Claude,
-ChatGPT, Copilot…). Donnez-lui ce message :
+**Commencez ici : [docs/INSTALLATION.fr.md](docs/INSTALLATION.fr.md)**, un guide pas à pas qui part
+de zéro, pour Mac (et, [essayé une fois](docs/INSTALLATION.fr.md#8-depuis-un-pc-linux),
+pour un PC Linux). Sous Windows, suivez le
+[guide du dépôt d'origine](https://github.com/Wuki60/MrCuisineVibeConnect/blob/main/docs/INSTALLATION.fr.md).
 
-> Installe Toque sur mon Monsieur Cuisine Connect en suivant le fichier AGENTS.md de
-> https://github.com/Wuki60/MrCuisineVibeConnect
-
-Le fichier [AGENTS.md](AGENTS.md) lui décrit toute la procédure, et le script
-[`tools/setup/toque-setup.ps1`](tools/setup/toque-setup.ps1) fait le travail étape par étape
-(téléchargements vérifiés, pilote, sauvegarde, root, installation, ADB par Wi-Fi). L'agent ne vous
-demande que ce qu'il ne peut pas faire lui-même :
-
-- avoir un câble **USB-A mâle ↔ USB-A mâle** et un petit tournevis Torx ;
-- dévisser la trappe sous le robot, brancher le câble sur le port **« Android USB »**, éteindre et
-  rallumer le robot quand il le dit ;
-- répondre aux fenêtres de sécurité de Windows (et, si besoin, désactiver l'intégrité de la mémoire
-  le temps de l'installation) ;
-- appuyer une fois sur **Autoriser** sur l'écran du robot.
-
-Comptez 1 à 2 heures. Sans agent : [docs/INSTALLATION.fr.md](docs/INSTALLATION.fr.md).
+En bref : il faut un Mac, un câble **USB-A mâle ↔ USB-A mâle**, un petit tournevis Torx et 1 à 2
+heures. Vous préparez le Mac (Homebrew, puis une copie de ce dépôt), puis soit vous laissez
+[Claude Code](https://code.claude.com/docs/en/quickstart) faire l'installation en suivant
+[AGENTS.md](AGENTS.md), soit vous lancez vous-même [`tools/setup/toque-setup.sh`](tools/setup/toque-setup.sh),
+une étape à la fois. Il sauvegarde d'abord le robot, le roote avec Magisk, installe Toque et active
+ADB par Wi-Fi. Vous ne vous occupez que de la trappe, du câble, de l'interrupteur et d'un appui sur
+l'écran du robot.
 
 ## Ce que fait Toque
 
@@ -63,10 +64,25 @@ Comptez 1 à 2 heures. Sans agent : [docs/INSTALLATION.fr.md](docs/INSTALLATION.
   qui l'utilisent suivent en proportion (pavé numérique, fractions comprises). Favoris, notes et quantités corrigées suivent la recette
   quand une synchronisation la remplace par la même recette de l'autre source (site ou appli
   d'origine).
+- **Pour plus ou moins de personnes** : − / + au-dessus des ingrédients, de la moitié au double de la
+  recette. Tout ce qui se pèse ou se mesure suit (liste, pesées, « 500 g d'eau » dans les étapes),
+  arrondi comme on l'écrirait à la main, avec le même arrondi partout ; œufs et cuillerées sont
+  arrondis au demi. Temps, vitesses et températures restent ceux de la recette testée, avec un rappel
+  de surveiller la cuisson, et une alerte quand le bol risque d'être trop plein (2,5 L de liquide au
+  maximum).
+- **Mes recettes** : écrivez les vôtres (titre, personnes, durée, une ligne par ingrédient, étapes
+  avec leur réglage du robot et leur pesée, choisis avec les mêmes limites de sécurité que la cuisson
+  manuelle), ou faites **votre version** d'une recette Lidl avec le crayon. Les synchronisations n'y
+  touchent jamais. Réglages › Mes recettes les exporte vers `Download/toque-mes-recettes.json`, ou
+  les importe (pour les sauvegarder ou les passer à un autre robot).
+- **Recettes des autres langues** (option dans Réglages › Recettes Lidl) : les recettes absentes
+  dans votre langue sont ajoutées en anglais, français, allemand, espagnol…, une seule fois
+  chacune, avec leur langue sur la vignette.
 - **Sons** : une cloche sonne quand la quantité à peser est atteinte (son au choix dans les
   Réglages), et une mélodie forte retentit à la fin du dernier programme de la recette. Un réglage
   vérifié (« J'ai vérifié ce réglage ») est mémorisé pour les prochaines fois.
-- **Cuisson manuelle**, programmes **Pétrir / Vapeur / Rissoler**, **Turbo**, **balance**.
+- **Cuisson manuelle**, programmes **Pétrir / Vapeur / Rissoler / Nettoyage**, **Turbo**, **balance**.
+  Nettoyage : 1 L d'eau chaude et une goutte de liquide vaisselle, vitesse de 4 à 10, sans chauffe.
 - **Hors ligne** : tout fonctionne sans réseau (plus de « serveur injoignable » au démarrage).
 - **Heure toujours juste** : le fuseau horaire est trouvé d'après la connexion Internet et l'heure
   vient du réseau (le robot n'a pas de pile d'horloge). Juste après l'allumage, l'horloge est réglée
@@ -76,7 +92,7 @@ Comptez 1 à 2 heures. Sans agent : [docs/INSTALLATION.fr.md](docs/INSTALLATION.
   bouton rotatif (de 2 à 30 min, ou jamais, dans Réglages › Écran), un écran noir assombri affiche
   l'heure, et la température du bol quand il est chaud. Jamais pendant un programme ni sur la
   balance. Le geste qui réveille ne fait rien d'autre. Pendant la veille, l'anneau de la molette
-  reste allumé en veilleuse blanche très faible (désactivable).
+  reste normal, passe en veilleuse blanche très faible ou s'éteint (Réglages › Écran).
 - **Capteur du bol inversé** : sur certains robots (vu sur un SKMC 1200 C3), la base signale le bol
   présent quand il est retiré ; Réglages › Sécurité › Inverser le capteur du bol corrige cela.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton
@@ -86,6 +102,8 @@ Comptez 1 à 2 heures. Sans agent : [docs/INSTALLATION.fr.md](docs/INSTALLATION.
   la nouvelle (sans rien demander sur un robot rooté, puis Toque redémarre). Refusé pendant un programme.
   Les certificats racines récents absents d'Android 6 (ISRG Root X1/X2 pour le serveur de
   téléchargement de GitHub, Sectigo, Google) sont embarqués : les téléchargements HTTPS marchent sur le robot.
+  Quand une nouvelle version sort, Toque le signale au démarrage ou en sortant de veille (au plus
+  toutes les quelques heures, jamais pendant un programme) ; « Plus tard » attend le lendemain.
 
 ## Sécurité : ce qui change par rapport à l'appli d'origine
 
@@ -118,8 +136,10 @@ app/    Appli Android (minSdk 23), sans AndroidX
         machine/   service de pilotage (processus « :machine ») et IPC
         recipes/   catalogue local, synchro Lidl
         ui/        écrans
-tools/  setup/toque-setup.ps1 (installation complète, pilotable par un agent IA), scripts de root (TWRP),
-        d'installation, de restauration et de publication, twin.py (jumeau numérique pour tester sur PC)
+tools/  setup/toque-setup.sh (installation complète depuis un Mac, pilotable par un agent IA), robot/
+        (scripts lancés sur le robot : root, écriture depuis TWRP, restauration), scripts
+        d'installation, de restauration et de publication (.sh pour macOS, les .ps1 d'origine pour
+        Windows), twin.py (jumeau numérique pour tester)
 docs/   INSTALLATION.md (EN), INSTALLATION.fr.md (FR)
 AGENTS.md  procédure d'installation pour un agent IA
 ```
@@ -130,7 +150,10 @@ Ouvrir le dossier dans **Android Studio**, attendre la synchronisation Gradle, p
 **Build › Build App Bundle(s) / APK(s) › Build APK(s)**. L'APK est dans
 `app/build/outputs/apk/debug/`.
 
-En ligne de commande : `gradlew assembleDebug` (et `gradlew :core:test` pour les tests).
+En ligne de commande : `./gradlew assembleDebug` (et `./gradlew :core:test` pour les tests). Gradle
+demande le JDK 17 ou 21 ; avec un JDK par défaut plus récent, la compilation s'arrête avec un simple
+numéro de version comme erreur. Le JDK d'Android Studio convient :
+`export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
 
 ## Tester sans le robot
 
@@ -140,9 +163,9 @@ En ligne de commande : `gradlew assembleDebug` (et `gradlew :core:test` pour les
    Réglages › Recettes Lidl › Synchroniser télécharge les recettes sur n'importe quel appareil.
 2. **Jumeau numérique** : le jumeau du [Monsieur Cuisine Developer SDK](https://github.com/antrea/monsieur-cuisine-developer-sdk)
    reproduit le protocole réel indépendamment de Toque.
-   `python tools/twin.py --sdk <dossier du SDK>` puis, dans Toque, Réglages › Machine ›
+   `python3 tools/twin.py --sdk <dossier du SDK>` puis, dans Toque, Réglages › Machine ›
    Jumeau (émulateur : hôte `10.0.2.2` ; appareil réel : `adb reverse tcp:8765 tcp:8765` et
-   hôte `127.0.0.1`). `python tools/twin.py --send "lid 1"` ouvre le couvercle, etc.
+   hôte `127.0.0.1`). `python3 tools/twin.py --send "lid 1"` ouvre le couvercle, etc.
 
 ## Ajouter une langue
 
@@ -155,7 +178,7 @@ L'appli est écrite en français ; chaque autre langue est un fichier dans
 2. Recompiler l'appli, ou, sans recompiler, copier le fichier dans `Android/data/app.toque/files/lang/`
    sur l'appareil puis relancer Toque.
 
-La langue apparaît alors dans Réglages › Langue · Language. `gradlew :core:test` vérifie chaque
+La langue apparaît alors dans Réglages › Langue · Language. `./gradlew :core:test` vérifie chaque
 fichier de langue.
 
 ## Publier une nouvelle version
@@ -170,21 +193,23 @@ Toutes les compilations sont signées avec la clé du projet (`app/signature/`, 
 compilé sur n'importe quel PC ou par GitHub s'installe par-dessus la version précédente. N'installez que
 les APK publiés sur ce dépôt.
 
-Sans GitHub Actions : `gradlew assembleRelease`, puis
-`powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1 -Apk app\build\outputs\apk\release\app-release.apk`
-crée la version `vX.Y.Z` et y joint l'APK (jeton GitHub : `GH_TOKEN`, `gh`, ou les identifiants déjà
-enregistrés pour git).
+Sans GitHub Actions : `./gradlew assembleRelease`, puis
+`bash tools/publish-release.sh --apk app/build/outputs/apk/release/app-release.apk [--repo propriétaire/nom]`
+crée la version `vX.Y.Z` et y joint l'APK (il faut `gh` ; jeton GitHub : `GH_TOKEN`, `gh auth login`,
+ou les identifiants déjà enregistrés pour git ; `--dry-run` montre seulement ce qu'il ferait).
 
 ## Installer sur le robot
 
-Avec un agent IA : **[AGENTS.md](AGENTS.md)** (voir plus haut). À la main :
-**[docs/INSTALLATION.fr.md](docs/INSTALLATION.fr.md)** : root, installation, premier essai à vide,
-synchronisation des recettes, retour à l'appli d'origine.
+**[docs/INSTALLATION.fr.md](docs/INSTALLATION.fr.md)** (voir [Installer](#installer)) : préparation
+du Mac, root, installation avec Claude Code ou à la main, premier essai à vide, synchronisation des
+recettes, retour à l'appli d'origine. Depuis Windows, suivre le guide du dépôt
+d'origine.
 
 ## Crédits
 
 - Protocole : [Monsieur Cuisine Developer SDK](https://github.com/antrea/monsieur-cuisine-developer-sdk) (MIT).
 - Accès au robot : [Monsieur-Cuisine-Connect-Hack](https://github.com/EliasKotlyar/Monsieur-Cuisine-Connect-Hack).
+- Mode téléchargement MediaTek sous macOS : [mtkclient](https://github.com/bkerler/mtkclient) (GPLv3, téléchargé par `prepare`, non inclus ; `prepare` applique les corrections pour le pilote série de macOS de `tools/setup/mtkclient-macos-serial.patch`).
 - Contributions : @pierok13 (veille, notes et quantités, paliers, sons, récentes, certificats Android 6,
   capteur du bol), @lucasbraud, @OUTSIDE2k8 (traduction espagnole), @Locodice67 (traduction allemande,
   script d'installation), @baptiste-gislot, @florentdestremau (bouton rotatif), et tous ceux qui ont

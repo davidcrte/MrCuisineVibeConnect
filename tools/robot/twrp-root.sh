@@ -2,13 +2,13 @@
 # Prepares the robot for Toque. Run it in TWRP, as root:
 #   adb push Magisk-vXX.apk /tmp/magisk.apk
 #   adb push boot-original.img /tmp/boot.img        (your backup of the original boot)
-#   adb push %USERPROFILE%\.android\adbkey.pub /tmp/adbkey.pub   (optional)
-#   adb push tools\robot\twrp-root.sh /tmp/
+#   adb push ~/.android/adbkey.pub /tmp/adbkey.pub   (optional; Windows: %USERPROFILE%\.android\adbkey.pub)
+#   adb push tools/robot/twrp-root.sh /tmp/
 #   adb shell sh /tmp/twrp-root.sh
 #   adb pull /tmp/magisk/new-boot.img boot-magisk.img
 #
 # 1. Patches the original boot with official Magisk -> /tmp/magisk/new-boot.img (nothing is
-#    flashed: flash it into "boot" with SP Flash Tool afterwards).
+#    flashed: write it into "boot" afterwards, from TWRP with twrp-flash.sh or with SP Flash Tool).
 # 2. Enables ADB in Android (/system/build.prop) and deletes /system/recovery-from-boot.p, which
 #    would otherwise put the stock recovery back over TWRP. Copies of the originals: /tmp/orig.
 # 3. Optionally authorizes the PC's ADB key, so no prompt is needed on the robot's screen.
@@ -21,9 +21,14 @@ die() { echo "ERROR: $*"; exit 1; }
 echo "== 1. Magisk: patching the original boot"
 rm -rf $T/magisk
 mkdir -p $T/magisk/apk && cd $T/magisk || die "cannot create $T/magisk"
-# Old TWRP busybox unzip extracts every entry, then errors on the APK signing block: accept
-# that as long as the files are there (each one is checked just below).
-unzip -o -q $T/magisk.apk -d apk || [ -f apk/assets/boot_patch.sh ] || die "cannot unzip magisk.apk"
+# TWRP's busybox (1.22) unzip reads entries in order and, after extracting the last one, stops on
+# the zero padding before the APK Signing Block: "invalid zip magic 00000000", exit code 1. Every
+# entry is extracted (and CRC-checked) by then, so that error alone is not fatal; the copies below
+# check that each needed file is there.
+if ! unzip -o -q $T/magisk.apk -d apk 2> $T/unzip.err; then
+  grep -q "invalid zip magic 00000000" $T/unzip.err || { cat $T/unzip.err; die "cannot unzip magisk.apk"; }
+fi
+rm -f $T/unzip.err
 for f in boot_patch.sh util_functions.sh stub.apk; do
   cp apk/assets/$f . || die "$f missing: is this a Magisk APK?"
 done

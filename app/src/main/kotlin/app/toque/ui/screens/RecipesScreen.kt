@@ -23,7 +23,9 @@ import app.toque.Prefs
 import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
 import app.toque.core.recipes.RecipeFilter
+import app.toque.core.recipes.RecipeSource
 import app.toque.core.recipes.SearchIndex
+import app.toque.core.recipes.UserRecipes
 import app.toque.ui.Icon
 import app.toque.ui.ImageLoader
 import app.toque.ui.MainActivity
@@ -103,6 +105,10 @@ class RecipesScreen(
         bar.addView(field, LinearLayout.LayoutParams(0, Ui.u(64), 1f))
         count = Ui.text(c, "", 17f, Ui.TEXT2)
         bar.addView(count, Ui.lp(Ui.WRAP, Ui.WRAP, l = 18))
+        bar.addView(Ui.button(c, tr("Nouvelle recette"), Ui.Style.SECONDARY, Icon.Kind.PLUS, height = 64, textSize = 18f) {
+            a.hideKeyboard()
+            a.push(RecipeEditScreen(a, UserRecipes.blank(), isNew = true))
+        }, Ui.lp(Ui.WRAP, Ui.WRAP, l = 16))
         root.addView(bar)
 
         val scroller = HorizontalScrollView(c).apply { isHorizontalScrollBarEnabled = false; overScrollMode = View.OVER_SCROLL_NEVER }
@@ -155,6 +161,8 @@ class RecipesScreen(
         chip(tr("Récentes"), usage == Usage.RECENT, base, Usage.RECENT)
         chip(tr("Fréquentes"), usage == Usage.MOST, base, Usage.MOST)
         chip(tr("Favoris"), plain && filter.favoritesOnly, base.copy(favoritesOnly = true))
+        if (filter.source == RecipeSource.USER || a.app.recipes.index.entries.any { it.source == RecipeSource.USER })
+            chip(tr("Mes recettes"), plain && filter.source == RecipeSource.USER, base.copy(source = RecipeSource.USER))
         chip(tr("30 min max"), plain && filter.maxMinutes == 30, base.copy(maxMinutes = 30))
         for (cat in a.app.recipes.index.categories.take(30)) chip(cat, plain && filter.category == cat, base.copy(category = cat))
     }
@@ -195,6 +203,8 @@ class RecipesScreen(
             none -> tr("Les recettes Lidl apparaîtront après la première synchronisation, une fois Toque installé sur le robot.")
             usage != Usage.NONE && query.isBlank() -> tr("Aucune recette cuisinée pour l'instant.\nLes recettes apparaissent ici dès leur première cuisson.")
             filter.favoritesOnly && query.isBlank() -> tr("Aucun favori pour l'instant.\nTouchez l'étoile d'une recette pour l'ajouter.")
+            filter.source == RecipeSource.USER && query.isBlank() ->
+                tr("Aucune recette perso pour l'instant.\nTouchez « Nouvelle recette », ou le crayon d'une recette Lidl pour en faire votre version.")
             else -> tr("Aucune recette ne correspond.\nAstuce : séparez plusieurs ingrédients par des virgules.")
         }
     }
@@ -258,6 +268,11 @@ class RecipesScreen(
         val title = Ui.ellipsize(Ui.text(c, "", 18f, Ui.TEXT, Ui.MEDIUM), 2)
         val meta = Ui.ellipsize(Ui.text(c, "", 15f, Ui.TEXT2))
         val star = Icon(c, Icon.Kind.STAR_FILLED, Ui.ACCENT)
+        /** « Perso », ou la langue (« DE ») d'une recette venue d'une autre langue. */
+        val badge = Ui.text(c, "", 13f, Ui.TEXT, Ui.MEDIUM).apply {
+            setPadding(Ui.u(10), Ui.u(3), Ui.u(10), Ui.u(3))
+            background = Ui.round(0xB3000000.toInt(), 20f)
+        }
 
         init {
             root.tag = this
@@ -267,6 +282,7 @@ class RecipesScreen(
             imageBox.addView(initials, Ui.flp(Ui.WRAP, Ui.WRAP, Gravity.CENTER))
             imageBox.addView(image, Ui.flp())
             imageBox.addView(star, Ui.flp(Ui.u(26), Ui.u(26), Gravity.TOP or Gravity.END).apply { setMargins(0, Ui.u(10), Ui.u(10), 0) })
+            imageBox.addView(badge, Ui.flp(Ui.WRAP, Ui.WRAP, Gravity.TOP or Gravity.START).apply { setMargins(Ui.u(10), Ui.u(10), 0, 0) })
             imageBox.clipToOutline = true
             imageBox.outlineProvider = object : android.view.ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: android.graphics.Outline) {
@@ -289,6 +305,9 @@ class RecipesScreen(
             if (e.category.isNotBlank()) parts += e.category
             meta.text = parts.joinToString(" · ")
             star.visibility = if (a.app.recipes.isFavorite(e.id)) View.VISIBLE else View.GONE
+            val tag = if (e.source == RecipeSource.USER) tr("Perso") else e.language.substringBefore('-').uppercase()
+            badge.text = tag
+            badge.visibility = if (tag.isEmpty()) View.GONE else View.VISIBLE
             imageBox.background = Ui.gradient(Ui.placeholderColors(e.title), 0f)
             initials.text = Ui.initials(e.title)
             ImageLoader.load(image, a.app.recipes.imageFile(e.image), Ui.u(260))

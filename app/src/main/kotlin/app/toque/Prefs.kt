@@ -103,11 +103,15 @@ class Prefs(context: Context) {
             p.edit().putInt("standbyMinutes", v).commit()
         }
 
-    /** Pendant la veille, la molette reste allumée en veilleuse (blanc faible). */
-    var standbyKnobLight: Boolean
-        get() = p.getBoolean("standbyKnobLight", true)
+    /**
+     * Molette pendant la veille : « normal » (inchangée), « dim » (veilleuse blanche faible) ou
+     * « off » (éteinte). Reprend l'ancien interrupteur « standbyKnobLight » s'il a été réglé.
+     */
+    var standbyKnob: String
+        get() = p.getString("standbyKnob", null)
+            ?: if (p.getBoolean("standbyKnobLight", true)) "dim" else "normal"
         set(v) {
-            p.edit().putBoolean("standbyKnobLight", v).commit()
+            p.edit().putString("standbyKnob", v).commit()
         }
 
     /** Fuseau horaire : « auto » (d'après la connexion Internet) ou un identifiant IANA choisi à la main. */
@@ -240,5 +244,37 @@ class Prefs(context: Context) {
         get() = p.getString("weighSound", "ding") ?: "ding"
         set(v) {
             p.edit().putString("weighSound", v).commit()
+        }
+    /** Prévenir quand une nouvelle version de Toque est publiée (au démarrage et au réveil). */
+    var updateAlerts: Boolean
+        get() = p.getBoolean("updateAlerts", true)
+        set(v) {
+            p.edit().putBoolean("updateAlerts", v).commit()
+        }
+
+    var lastUpdateCheckMs: Long
+        get() = p.getLong("lastUpdateCheckMs", 0)
+        set(v) {
+            p.edit().putLong("lastUpdateCheckMs", v).commit()
+        }
+
+    /** Dernière version proposée par l'alerte, et quand (« Plus tard » ne la repropose pas tout de suite). */
+    var updateAskedVersion: String
+        get() = p.getString("updateAskedVersion", "") ?: ""
+        set(v) {
+            p.edit().putString("updateAskedVersion", v).commit()
+        }
+
+    var updateAskedMs: Long
+        get() = p.getLong("updateAskedMs", 0)
+        set(v) {
+            p.edit().putLong("updateAskedMs", v).commit()
+        }
+
+    /** Ajouter les recettes en ligne publiées seulement dans une autre langue. */
+    var foreignRecipes: Boolean
+        get() = p.getBoolean("foreignRecipes", false)
+        set(v) {
+            p.edit().putBoolean("foreignRecipes", v).commit()
         }
 }

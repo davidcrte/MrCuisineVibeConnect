@@ -53,12 +53,16 @@ class MainActivity : Activity() {
     private var toastView: TextView? = null
     private var lastKnobMs = 0L
     private lateinit var standby: Standby
+    lateinit var updates: UpdateAlert
+        private set
     private var swallowTouch = false
     var knobListener: ((KeyEvent) -> Unit)? = null
 
     val prefs: Prefs get() = app.prefs
     val machine get() = app.machine
     val snapshot: Snapshot get() = app.machine.snapshot
+    val asleep: Boolean get() = standby.asleep
+    val overlayShown: Boolean get() = overlay.visibility == View.VISIBLE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,6 +87,8 @@ class MainActivity : Activity() {
         root.addView(overlay, Ui.flp())
         setContentView(root)
         standby = Standby(this, root)
+        updates = UpdateAlert(this)
+        standby.onWake = { updates.onWake() }
 
         try {
             tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85)
@@ -121,6 +127,7 @@ class MainActivity : Activity() {
         unsubscribeEvents = app.machine.onEvent { e -> onMachineEvent(e) }
         topBar.startClock()
         standby.start()
+        updates.onStart()
     }
 
     override fun onResume() {
@@ -136,6 +143,7 @@ class MainActivity : Activity() {
         unsubscribeEvents?.invoke()
         topBar.stopClock()
         standby.stop()
+        updates.onStop()
         super.onStop()
     }
 
@@ -179,14 +187,16 @@ class MainActivity : Activity() {
     fun back() {
         if (stack.size <= 1) return
         val top = stack.last()
-        if (!top.canLeave()) return
+        if (!top.canLeave { back() }) return
         hideKeyboard()
         top.onHide()
         stack.removeAt(stack.size - 1)
         show(stack.last())
     }
 
+    /** Retour à l'accueil (maison) ; un écran aux modifications non enregistrées demande d'abord confirmation. */
     fun home() {
+        for (i in stack.size - 1 downTo 1) if (!stack[i].canLeave { home() }) return
         hideKeyboard()
         while (stack.size > 1) stack.removeAt(stack.size - 1).onHide()
         show(stack.first())
@@ -230,11 +240,13 @@ class MainActivity : Activity() {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN && standby.onKnob()) return true
-        knobListener?.let { l ->
+        // Retour reste Retour (tablettes et émulateur) : jamais un cran du bouton, même appris par erreur.
+        val isBack = event.keyCode == KeyEvent.KEYCODE_BACK
+        if (!isBack) knobListener?.let { l ->
             if (event.action == KeyEvent.ACTION_DOWN) l(event)
             return true
         }
-        if (event.action == KeyEvent.ACTION_DOWN && overlay.visibility != View.VISIBLE) {
+        if (!isBack && event.action == KeyEvent.ACTION_DOWN && overlay.visibility != View.VISIBLE) {
             val k = event.keyCode
             // Par défaut : les flèches, et les touches du bouton du robot (clavier mtk-kpd :
             // F6 à droite, F7 à gauche, F5 à l'appui).
@@ -400,6 +412,25 @@ class MainActivity : Activity() {
         }
     }
 
+    private var onStorage: ((Boolean) -> Unit)? = null
+
+    /** Accès au dossier Download (import et export de recettes) ; Android le demande une fois. */
+    fun withStorage(then: (Boolean) -> Unit) {
+        val perms = arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        if (perms.all { checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED }) { then(true); return }
+        onStorage = then
+        requestPermissions(perms, STORAGE_REQUEST)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != STORAGE_REQUEST) return
+        val ok = grantResults.isNotEmpty() && grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
+        onStorage?.invoke(ok)
+        onStorage = null
+        immersive()
+    }
+
     fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         currentFocus?.let { imm.hideSoftInputFromWindow(it.windowToken, 0) }
@@ -485,6 +516,7 @@ class MainActivity : Activity() {
 
     companion object {
         private var reopenSettings = false
+        private const val STORAGE_REQUEST = 7
 
         /** MotionEvent.AXIS_SCROLL (API 26), valeur fixe pour Android 6. */
         private const val AXIS_SCROLL = 26

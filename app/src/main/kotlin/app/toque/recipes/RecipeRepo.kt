@@ -11,6 +11,7 @@ import app.toque.core.recipes.RecipeAdjustments
 import app.toque.core.recipes.RecipeCodec
 import app.toque.core.recipes.RecipeSource
 import app.toque.core.recipes.SearchIndex
+import app.toque.core.recipes.UserRecipes
 import app.toque.core.recipes.adjusted
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -162,8 +163,9 @@ class RecipeRepo(private val context: Context) {
     }
 
     /**
-     * Remplace tout le catalogue par l'import du jour (miroir de l'appli d'origine).
+     * Remplace tout le catalogue Lidl par l'import du jour (miroir de l'appli d'origine).
      * Les favoris sont conservés ; ceux marqués dans l'appli d'origine sont ajoutés.
+     * Les recettes perso restent.
      */
     fun replaceAll(recipes: List<Recipe>) {
         exec.submit { replaceAllNow(recipes) }.get()
@@ -174,7 +176,7 @@ class RecipeRepo(private val context: Context) {
         val before = titles(db)
         db.beginTransaction()
         try {
-            db.delete("recipes", null, null)
+            db.delete("recipes", "id NOT LIKE ?", arrayOf(UserRecipes.ID_PREFIX + "%"))
             val now = System.currentTimeMillis()
             for (r in recipes) {
                 val v = ContentValues()
@@ -186,7 +188,7 @@ class RecipeRepo(private val context: Context) {
                 if (r.favorite) db.execSQL("INSERT OR IGNORE INTO favorites (id) VALUES (?)", arrayOf(r.id))
             }
             val kept = recipes.map { it.id }.toHashSet()
-            carryOver(db, before.filterKeys { it !in kept })
+            carryOver(db, before.filterKeys { it !in kept && !UserRecipes.isUser(it) })
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
@@ -224,11 +226,11 @@ class RecipeRepo(private val context: Context) {
         out
     }.get()
 
-    /** Supprime les recettes absentes de [keep] (catalogue miroir de la source). */
+    /** Supprime les recettes Lidl absentes de [keep] (catalogue miroir de la source) ; jamais les recettes perso. */
     fun removeAllExcept(keep: Set<String>, rebuild: Boolean = true) {
         exec.submit {
             val db = helper.writableDatabase
-            val gone = titles(db).filterKeys { it !in keep }
+            val gone = titles(db).filterKeys { it !in keep && !UserRecipes.isUser(it) }
             db.beginTransaction()
             try {
                 for (id in gone.keys) db.delete("recipes", "id = ?", arrayOf(id))
@@ -240,6 +242,44 @@ class RecipeRepo(private val context: Context) {
             if (rebuild) rebuild()
         }.get()
     }
+
+    /**
+     * Enregistre une recette perso (nouvelle ou modifiée). La ligne est écrite tout de suite (la
+     * fiche peut s'ouvrir) ; l'index de recherche suit en arrière-plan.
+     */
+    fun saveUser(r: Recipe) {
+        require(UserRecipes.isUser(r.id))
+        upsertAll(listOf(r.copy(source = RecipeSource.USER)), rebuild = false)
+        exec.execute { rebuild() }
+    }
+
+    /** Supprime une recette perso, avec sa note, ses corrections, son favori et ses cuissons. */
+    fun deleteUser(id: String) {
+        if (!UserRecipes.isUser(id)) return
+        adjustments.remove(id)
+        cooked.remove(id)
+        synchronized(favorites) { favorites -= id }
+        exec.submit {
+            val db = helper.writableDatabase
+            for (table in listOf("recipes", "favorites", "adjustments", "cooked")) db.delete(table, "id = ?", arrayOf(id))
+        }.get()
+        exec.execute { rebuild() }
+    }
+
+    /** Toutes les recettes perso (pour l'export). */
+    fun userRecipes(): List<Recipe> = exec.submit<List<Recipe>> {
+        val out = ArrayList<Recipe>()
+        helper.readableDatabase.rawQuery("SELECT json FROM recipes WHERE id LIKE ?", arrayOf(UserRecipes.ID_PREFIX + "%")).use { c ->
+            while (c.moveToNext()) {
+                try {
+                    RecipeCodec.decode(c.getString(0), RecipeSource.USER)
+                } catch (_: Exception) {
+                    null
+                }?.let { out += it }
+            }
+        }
+        out.sortedBy { it.title.lowercase() }
+    }.get()
 
     private fun titles(db: SQLiteDatabase): Map<String, String> {
         val out = HashMap<String, String>()

@@ -75,6 +75,35 @@ object Ui {
             includeFontPadding = false
         }
 
+    /** Texte d'une seule ligne, rapetissé de [size] jusqu'à [min] pour tenir dans sa largeur (jamais de retour à la ligne). */
+    fun fitText(c: Context, size: Float, min: Float, color: Int = TEXT, face: Typeface = REGULAR): TextView =
+        object : TextView(c) {
+            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                val avail = View.MeasureSpec.getSize(widthMeasureSpec) - paddingLeft - paddingRight
+                if (View.MeasureSpec.getMode(widthMeasureSpec) != View.MeasureSpec.UNSPECIFIED && avail > 0) {
+                    val p = android.graphics.Paint(paint)
+                    var px = uf(size)
+                    p.textSize = px
+                    val s = text.toString()
+                    while (px > uf(min) && p.measureText(s) > avail) { px -= 1f; p.textSize = px }
+                    if (px != textSize) setTextSize(TypedValue.COMPLEX_UNIT_PX, px)
+                }
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            }
+
+            override fun onTextChanged(text: CharSequence?, start: Int, lengthBefore: Int, lengthAfter: Int) {
+                super.onTextChanged(text, start, lengthBefore, lengthAfter)
+                requestLayout()
+            }
+        }.apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, uf(size))
+            setTextColor(color)
+            typeface = face
+            includeFontPadding = false
+            setSingleLine()
+            ellipsize = TextUtils.TruncateAt.END
+        }
+
     fun ellipsize(t: TextView, lines: Int = 1): TextView {
         t.maxLines = lines
         t.ellipsize = TextUtils.TruncateAt.END
