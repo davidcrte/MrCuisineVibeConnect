@@ -437,7 +437,24 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
 
     override fun onKnobPress(): Boolean {
         val m = recipe.steps.getOrNull(index)?.machine
-        if (m == null) next() else if (m.program != StepProgram.TURBO && startBtn.isEnabled && startBtn.visibility == View.VISIBLE) launch()
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (m == null) next()
+        else if (a.snapshot.state == JobState.RUNNING) {
+            // Pause directe, sans confirmation ; un second appui sous 3 s est nécessaire pour relancer.
+            a.machine.pause { a.refusal(it) }
+            knobArmedUntil = now + KNOB_WINDOW_MS
+        } else if (m.program != StepProgram.TURBO && startBtn.isEnabled && startBtn.visibility == View.VISIBLE) {
+            if (now > knobArmedUntil) {
+                knobArmedUntil = now + KNOB_WINDOW_MS
+                a.toast(tr("Appuyez de nouveau sur le bouton pour lancer"))
+            } else {
+                knobArmedUntil = 0L
+                launch()
+            }
+        }
         return true
     }
+
+    private var knobArmedUntil = 0L
+    private companion object { const val KNOB_WINDOW_MS = 3000L }
 }
