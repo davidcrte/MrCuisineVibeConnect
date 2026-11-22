@@ -245,6 +245,12 @@ class Prefs(context: Context) {
         set(v) {
             p.edit().putString("weighSound", v).commit()
         }
+    /** Répéter le son de fin de programme toutes les 30 s (10 min au plus) tant qu'on n'a pas touché l'écran. */
+    var repeatEndAlarm: Boolean
+        get() = p.getBoolean("repeatEndAlarm", true)
+        set(v) {
+            p.edit().putBoolean("repeatEndAlarm", v).commit()
+        }
     /** Prévenir quand une nouvelle version de Toque est publiée (au démarrage et au réveil). */
     var updateAlerts: Boolean
         get() = p.getBoolean("updateAlerts", true)

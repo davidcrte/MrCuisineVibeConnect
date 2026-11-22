@@ -103,6 +103,9 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         safety.addView(Ui.text(c, tr("Les réglages qui se suivent sans geste à faire entre eux partent ensemble d'un seul appui sur Lancer : la lame passe directement à la vitesse et à la température suivantes."),
             15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
         safety.addView(toggle(tr("Sons"), a.prefs.sound) { a.prefs.sound = it }, Ui.lp(t = 10))
+        safety.addView(toggle(tr("Répéter l'alarme de fin"), a.prefs.repeatEndAlarm) { a.prefs.repeatEndAlarm = it }, Ui.lp(t = 10))
+        safety.addView(Ui.text(c, tr("Le son de fin de programme est rejoué toutes les 30 secondes, pendant 10 minutes au plus, jusqu'à ce que vous touchiez l'écran ou le bouton rotatif."),
+            15f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
         safety.addView(Ui.text(c, tr("Son quand la quantité à peser est atteinte"), 18f, Ui.TEXT), Ui.lp(t = 10))
         safety.addView(dropdown(Sounds.WEIGH_SOUNDS.map { it.first to tr(it.second) }, a.prefs.weighSound) { k ->
             a.prefs.weighSound = k

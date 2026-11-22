@@ -184,6 +184,8 @@
   "En cours… reste %s": "Running… %s left",
   "En pause": "Paused",
   "En sens inverse, vitesse %d maximum": "In reverse, speed %d maximum",
+  "Répéter l'alarme de fin": "Repeat the end alarm",
+  "Le son de fin de programme est rejoué toutes les 30 secondes, pendant 10 minutes au plus, jusqu'à ce que vous touchiez l'écran ou le bouton rotatif.": "The end-of-programme sound plays again every 30 seconds, for 10 minutes at most, until you touch the screen or the rotary knob.",
   "Enchaîner les étapes machine des recettes": "Chain the machine steps of recipes",
   "Enregistrer": "Save",
   "Entrez un poids entre 1 et %d g": "Enter a weight between 1 and %d g",

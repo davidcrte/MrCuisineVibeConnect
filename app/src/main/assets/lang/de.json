@@ -184,6 +184,8 @@
   "En cours… reste %s": "Läuft… noch %s",
   "En pause": "Pausiert",
   "En sens inverse, vitesse %d maximum": "Rückwärts max. Geschwindigkeit %d",
+  "Répéter l'alarme de fin": "Endalarm wiederholen",
+  "Le son de fin de programme est rejoué toutes les 30 secondes, pendant 10 minutes au plus, jusqu'à ce que vous touchiez l'écran ou le bouton rotatif.": "Der Ton am Programmende wird alle 30 Sekunden wiederholt, höchstens 10 Minuten lang, bis Sie den Bildschirm oder den Drehknopf berühren.",
   "Enchaîner les étapes machine des recettes": "Maschinenschritte der Rezepte verketten",
   "Enregistrer": "Speichern",
   "Entrez un poids entre 1 et %d g": "Gewicht zwischen 1 und %d g eingeben",

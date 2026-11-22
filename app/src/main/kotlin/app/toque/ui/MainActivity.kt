@@ -233,6 +233,7 @@ class MainActivity : Activity() {
 
     /** Le geste qui réveille l'écran ne fait rien d'autre (on ne lance rien en le touchant dans le noir). */
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) stopEndAlarm()
         if (event.actionMasked == MotionEvent.ACTION_DOWN) swallowTouch = standby.onInput()
         if (swallowTouch) {
             if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) swallowTouch = false
@@ -242,6 +243,7 @@ class MainActivity : Activity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) stopEndAlarm()
         if (event.action == KeyEvent.ACTION_DOWN && standby.onKnob()) return true
         // Retour reste Retour (tablettes et émulateur) : jamais un cran du bouton, même appris par erreur.
         val isBack = event.keyCode == KeyEvent.KEYCODE_BACK
@@ -295,8 +297,8 @@ class MainActivity : Activity() {
         current?.onEvent(e)
         if (e.type != EventType.LINK_CHANGED && e.type != EventType.PHASE_CHANGED) standby.poke()
         when (e.type) {
-            EventType.JOB_FINISHED -> if (!ownSound) chime(2)
-            EventType.FAULT -> { chime(3); toast(e.message, Ui.DANGER) }
+            EventType.JOB_FINISHED -> if (!ownSound) { chime(2); armEndAlarm { chime(2) } }
+            EventType.FAULT -> { stopEndAlarm(); chime(3); toast(e.message, Ui.DANGER) }
             EventType.LID_OPENED -> if (snapshot.busy || snapshot.state != null) toast(tr("Couvercle ouvert : pause"), Ui.WARN)
             EventType.JOB_PAUSED -> if (e.message != PauseReason.USER.label) toast(e.message, Ui.WARN)
             EventType.TURBO_END -> toast(e.message, Ui.TEXT2)
@@ -312,6 +314,30 @@ class MainActivity : Activity() {
     /** Fin de recette : mélodie forte, comme l'appli d'origine. */
     fun recipeDoneSound() {
         if (prefs.sound) Sounds.recipeDone()
+        armEndAlarm { Sounds.recipeDone() }
+    }
+
+    private var alarmRepeat: Runnable? = null
+
+    /** Rejoue [again] toutes les 30 s, 20 fois au plus (10 min), jusqu'au premier toucher ou à une faute. */
+    private fun armEndAlarm(again: () -> Unit) {
+        stopEndAlarm()
+        if (!prefs.sound || !prefs.repeatEndAlarm) return
+        var left = 20
+        val r = object : Runnable {
+            override fun run() {
+                if (--left < 0) { alarmRepeat = null; return }
+                again()
+                main.postDelayed(this, 30_000L)
+            }
+        }
+        alarmRepeat = r
+        main.postDelayed(r, 30_000L)
+    }
+
+    private fun stopEndAlarm() {
+        alarmRepeat?.let { main.removeCallbacks(it) }
+        alarmRepeat = null
     }
 
     fun chime(times: Int = 1) {

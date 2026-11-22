@@ -184,6 +184,8 @@
   "En cours… reste %s": "En marcha… quedan %s",
   "En pause": "En pausa",
   "En sens inverse, vitesse %d maximum": "En sentido inverso, velocidad %d máximo",
+  "Répéter l'alarme de fin": "Repetir la alarma final",
+  "Le son de fin de programme est rejoué toutes les 30 secondes, pendant 10 minutes au plus, jusqu'à ce que vous touchiez l'écran ou le bouton rotatif.": "El sonido de fin de programa se repite cada 30 segundos, 10 minutos como máximo, hasta que toque la pantalla o el botón giratorio.",
   "Enchaîner les étapes machine des recettes": "Encadenar los pasos de máquina de las recetas",
   "Enregistrer": "Guardar",
   "Entrez un poids entre 1 et %d g": "Introduce un peso entre 1 y %d g",
