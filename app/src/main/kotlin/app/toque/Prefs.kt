@@ -32,6 +32,16 @@ class Prefs(context: Context) {
             p.edit().putString("mode", v.key).commit()
         }
 
+    /**
+     * Le choix Démo / Machine réelle a été fait (accueil du premier lancement ou Réglages).
+     * Une installation qui a déjà enregistré un mode est considérée comme ayant choisi.
+     */
+    var modeChosen: Boolean
+        get() = p.getBoolean("modeChosen", false) || p.contains("mode")
+        set(v) {
+            p.edit().putBoolean("modeChosen", v).commit()
+        }
+
     /** Langue de l'interface : « auto » (celle du système), « fr » ou « en ». */
     var language: String
         get() = p.getString("language", I18n.AUTO) ?: I18n.AUTO

@@ -5,7 +5,10 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import app.toque.core.i18n.I18n
+import app.toque.Prefs
 import app.toque.core.i18n.tr
+import app.toque.core.machine.RootShell
+import app.toque.recipes.LidlSync
 import app.toque.core.recipes.UserRecipes
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
@@ -26,6 +29,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
     private lateinit var resumeCard: LinearLayout
     private lateinit var resumeText: TextView
     private lateinit var knobChip: LinearLayout
+    private lateinit var modeCard: LinearLayout
     private var unsub: (() -> Unit)? = null
     private val tick = object : Runnable {
         override fun run() {
@@ -51,6 +55,20 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         knobChip.isClickable = true
         knobChip.setOnClickListener { a.push(KnobSetupScreen(a)) }
         left.addView(knobChip, Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))
+
+        // Premier lancement : choix explicite entre Démo et Machine réelle, proposé une seule fois.
+        modeCard = Ui.vertical(c)
+        modeCard.setPadding(Ui.u(22), Ui.u(16), Ui.u(22), Ui.u(16))
+        modeCard.background = Ui.round(Ui.ACCENT_DIM, 24f)
+        modeCard.addView(Ui.text(c, tr("Cette appli pilote-t-elle la vraie machine ?"), 20f, Ui.TEXT, Ui.MEDIUM))
+        modeCard.addView(Ui.text(c, tr("Démo : base simulée, rien ne chauffe. Machine réelle : exige le root. Modifiable dans Réglages › Machine."), 16f, Ui.TEXT2), Ui.lp(t = 6))
+        val modeButtons = Ui.horizontal(c)
+        modeButtons.addView(Ui.button(c, tr("Démo"), Ui.Style.SECONDARY, height = 56, textSize = 18f) { chooseDemo() },
+            LinearLayout.LayoutParams(0, Ui.WRAP, 1f).apply { rightMargin = Ui.u(12) })
+        modeButtons.addView(Ui.button(c, tr("Machine réelle"), Ui.Style.PRIMARY, height = 56, textSize = 18f) { chooseHardware() },
+            LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
+        modeCard.addView(modeButtons, Ui.lp(Ui.MATCH, Ui.WRAP, t = 12))
+        left.addView(modeCard, Ui.lp(Ui.MATCH, Ui.WRAP, t = 12))
 
         val search = Ui.horizontal(c)
         search.setPadding(Ui.u(24), 0, Ui.u(24), 0)
@@ -166,6 +184,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         }
         val favs = repo.index.entries.count { it.favorite }
         favSub.text = if (favs == 0) tr("Aucun favori") else if (favs == 1) tr("1 favori") else tr("%d favoris", favs)
+        modeCard.visibility = if (a.prefs.modeChosen) View.GONE else View.VISIBLE
         knobChip.visibility = if (a.prefs.knobReady) View.GONE else View.VISIBLE
         val update = a.updates.available
         settingsSub.text = if (update != null) tr("Version %s disponible", update.version) else ""
@@ -189,6 +208,55 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         unsub?.invoke()
         a.updates.onChange = null
         view.removeCallbacks(tick)
+    }
+
+    private fun chooseDemo() {
+        a.prefs.mode = Prefs.Mode.DEMO
+        a.prefs.modeChosen = true
+        a.machine.reconfigure { v -> if (v.ok) a.toast(tr("Mode : %s", Prefs.Mode.DEMO.label), Ui.OK) else a.refusal(v) }
+        a.refreshTitle()
+        refresh()
+    }
+
+    /** Même effet que Réglages › Machine › Machine réelle › Appliquer (confirmation, root, appli d'origine coupée). */
+    private fun chooseHardware() {
+        if (a.snapshot.busy) {
+            a.toast(tr("Arrêtez d'abord le programme en cours"), Ui.WARN)
+            return
+        }
+        a.confirm(
+            tr("Piloter la vraie machine"),
+            tr("Toque va prendre le contrôle du moteur et de la chauffe à la place de l'appli d'origine.\n\n" +
+                "Premier essai : bol vide, couvercle fermé, à portée de l'interrupteur principal. " +
+                "Si quoi que ce soit semble anormal, coupez l'interrupteur."),
+            tr("Continuer"), danger = true,
+        ) { prepareHardware() }
+    }
+
+    private fun prepareHardware() {
+        a.toast(tr("Vérifications…"))
+        Thread {
+            val problems = ArrayList<String>()
+            if (!RootShell.available()) problems += tr("accès root refusé")
+            val sync = LidlSync(a, a.prefs, a.app.recipes, a.app.log)
+            if (problems.isEmpty() && sync.installed()) {
+                if (sync.components().hardwareService != null && !sync.setVendorHardware(false))
+                    problems += tr("impossible de couper l'appli d'origine du moteur")
+                sync.forceStop()
+            }
+            view.post {
+                if (problems.isNotEmpty()) {
+                    a.confirm(tr("Machine réelle indisponible"), problems.joinToString("\n") { "• $it" }, "OK", tr("Fermer")) {}
+                } else {
+                    a.prefs.mode = Prefs.Mode.HARDWARE
+                    a.prefs.bootLaunch = true
+                    a.prefs.modeChosen = true
+                    a.machine.reconfigure { v -> if (v.ok) a.toast(tr("Mode : %s", Prefs.Mode.HARDWARE.label), Ui.OK) else a.refusal(v) }
+                    a.refreshTitle()
+                    refresh()
+                }
+            }
+        }.start()
     }
 
     /** Retire la recette en cours de l'accueil (sans toucher à un programme qui tourne). */
